@@ -37,9 +37,10 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
     
     var loadingMoreTweets: NVActivityIndicatorView?
     var loadingView: UIView?
+    var stopOffset = false
     
     var user: ModelUser?
- 
+    
     var isMoreDataLoading = (start: false, finish: false, download: false)
     
     var viewHelp: UIView?
@@ -96,14 +97,16 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
         
         if let user = self.user, user.protected, !user.followYou {
             self.tweet = [ViewModelTweet]()
+            self.viewProgress?.stopAnimating()
+            self.viewProgress?.removeFromSuperview()
+            self.viewProgress = nil
             self.tableView.reloadData()
+            
         } else {
             self.reloadData()
         }
-    
-        var inset = tableView.contentInset
-        inset.bottom += ScrollActivityView.defaultHeight
-        tableView.contentInset = inset
+        
+        tableView.contentInset.bottom += 60.0
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -173,18 +176,31 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
         }
     }
     
-    //        override func viewWillDisappear(_ animated: Bool) {
-    //            super.viewWillDisappear(animated)
-    //                if self.us == ProfileConstant.account {} else {
-    //            self.us?.userData = Variable<UserData>(UserData.tempValue(action: false))
+    //            override func viewWillDisappear(_ animated: Bool) {
+    //                super.viewWillDisappear(animated)
+    //                    if self.user == Profile.account {} else {
+    //                self.user?.userData = Variable<UserData>(UserData.tempValue(action: false))
     //
+    //                }
     //            }
-    //        }
     
     func reloadData(append: Bool = false) {
         
         instance?.userTimeLine(id: (user?.id)!, maxID: lastTweetID) { (data) in
             if append {
+                if data.isEmpty {
+                    self.stopOffset = true
+                    self.loadingMoreTweets?.stopAnimating()
+                    self.loadingMoreTweets?.removeFromSuperview()
+                    self.loadingView?.removeFromSuperview()
+                    self.loadingMoreTweets = nil
+                    self.loadingView = nil
+                    //let pointOffSetY = self.tableView.contentSize.height - self.tableView.bounds.height + 50.0
+                    //self.tableView.setContentOffset(CGPoint(x: 0.0, y: pointOffSetY), animated: true)
+                    //self.tableView.contentInset = UIEdgeInsets(top: self.tableHeaderHeight, left: 0, bottom: 50.0, right: 0)
+                    UIView.animate(withDuration: 0.3) { self.tableView.contentInset = UIEdgeInsets(top: self.tableHeaderHeight, left: 0, bottom: 50.0, right: 0) }
+                    return
+                }
                 for x in data {
                     x.cellData.asObservable().subscribe(onNext: { data in
                         self.varietyCellAction(data: data)
@@ -341,6 +357,7 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
             
         case let .TapSettingsBtn(user, modal, showMute, publicReply, mute, follow):
             if modal {
+                print(data)
                 self.settings = true
                 let controller = UIStoryboard(name: "Main", bundle: Bundle.main).instantiateViewController(withIdentifier: "ModallyVC") as! ModallyVC
                 controller.transitioningDelegate = self
@@ -391,8 +408,19 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
         return tweets.count > 0 ? tweets.count : 1
     }
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let twee = tweet?[indexPath.row] else { return UITableViewCell() }
-        switch twee {
+        guard let twee = tweet else { return UITableViewCell() }
+        if twee.isEmpty {
+            if (self.user?.protected)! {
+                let cell = tableView.dequeueReusableCell(withIdentifier: "LockCell") as! LockCell
+                tableView.separatorStyle = .none
+                return cell
+            } else {
+                let cell = tableView.dequeueReusableCell(withIdentifier: "EmptyCell") as! EmptyCell
+                tableView.separatorStyle = .none
+                return cell
+            }
+        }
+        switch twee[indexPath.row] {
         case let media where !media.mediaImageURLs.isEmpty:
             let cell = tableView.dequeueReusableCell(withIdentifier: "media", for: indexPath) as! TweetMediaCell
             cell.tweet = media
@@ -441,32 +469,22 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
             return cell
         case let compact where !compact.tweetID.isEmpty:
             let cell = tableView.dequeueReusableCell(withIdentifier: "compact", for: indexPath) as! TweetCompactCell
-            cell.tweet = twee
+            cell.tweet = twee[indexPath.row]
             cell.indexPath = indexPath
             if let imageLoadOperation = imageLoadOperations[indexPath],
                 let image = imageLoadOperation.image {
-                twee.userPicImage.onNext(image)
+                twee[indexPath.row].userPicImage.onNext(image)
             } else {
-                let imageLoadOperation = ImageLoadOperation(url: twee.userAvatar)
+                let imageLoadOperation = ImageLoadOperation(url: twee[indexPath.row].userAvatar)
                 imageLoadOperation.completionHandler = { [weak self] (image) in
                     guard let strongSelf = self else { return }
-                    twee.userPicImage.onNext(image)
+                    twee[indexPath.row].userPicImage.onNext(image)
                     strongSelf.imageLoadOperations.removeValue(forKey: indexPath)
                 }
                 imageLoadQueue.addOperation(imageLoadOperation)
                 imageLoadOperations[indexPath] = imageLoadOperation
             }
             return cell
-        case let empty where empty.tweetID.isEmpty:
-            if (self.user?.protected)! {
-                let cell = tableView.dequeueReusableCell(withIdentifier: "LockCell") as! LockCell
-                tableView.separatorStyle = .none
-                return cell
-            } else {
-                let cell = tableView.dequeueReusableCell(withIdentifier: "EmptyCell") as! EmptyCell
-                tableView.separatorStyle = .none
-                return cell
-            }
             
         default:
             tableView.separatorStyle = .none
@@ -490,7 +508,7 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
         if !isMoreDataLoading.start, !isMoreDataLoading.finish && tweet?.count != nil && (tweet?.count)! > 8 {
             let scrollViewContentHeight = tableView.contentSize.height
             let scrollViewContentOffset = scrollViewContentHeight - tableView.bounds.height + 50.0
-            if tableView.contentOffset.y > scrollViewContentOffset {
+            if tableView.contentOffset.y > scrollViewContentOffset, !self.stopOffset {
                 NSObject.cancelPreviousPerformRequests(withTarget: self)
                 perform(#selector(UIScrollViewDelegate.scrollViewDidEndScrollingAnimation), with: nil, afterDelay: 0.3)
                 isMoreDataLoading.start = true

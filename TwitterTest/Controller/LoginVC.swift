@@ -103,7 +103,7 @@ class LoginVC: UIViewController, UIViewControllerTransitioningDelegate, UIWebVie
             self.btn.spiner.spinnerColor = self.btn.spinnerColor
         } else if loadWeb {
             var timer = false
-            let rectProgress = CGRect(x: self.view.bounds.width/2 - 55.0, y: self.view.bounds.height/2 - 55.0, width: 110.0, height: 110.0)
+            let rectProgress = CGRect(x: self.view.bounds.width/2 - 67.0, y: self.view.bounds.height/2 - 67.0, width: 134.0, height: 134.0)
             self.progress = NVActivityIndicatorView(frame: rectProgress, type: .ballScale, color: UIColor.white, padding: 12)
             self.view.addSubview(self.progress!)
             self.view.bringSubview(toFront: self.progress!)

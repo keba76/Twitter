@@ -5,7 +5,7 @@
 	<key>startPoints</key>
 	<array>
 		<string>{13.5, 0.5}</string>
-		<string>{25.5, 14.5}</string>
+		<string>{27.0, 14.5}</string>
 		<string>{18.5, 13.5}</string>
 		<string>{18.3, 19.5}</string>
 		<string>{8.7, 19.5}</string>
@@ -43,7 +43,7 @@
 		<string>{18.3, 19.5}</string>
 		<string>{8.7, 19.5}</string>
 		<string>{8.5, 13.5}</string>
-		<string>{1.5, 14.5}</string>
+		<string>{0.0, 14.5}</string>
 		<string>{13.5, 0.5}</string>
 	</array>
 </dict>

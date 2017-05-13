@@ -98,13 +98,10 @@ class HomeCell: UITableViewCell {
                 if TabBarVC.tab == .profileVC {
                     //Profile.reloadingProfileTweetsWhenRetweet = false
                 }
-            } else {
+            } else if s.tweet.user.id != Profile.account.id {
                 s.retweetBtn.select()
                 s.tweet.retweeted = true
                 s.tweet.cellData.value = CellData.Retweet(index: s.indexPath!, convert: CGPoint.zero)
-                if TabBarVC.tab == .profileVC {
-                    //Profile.reloadingProfileTweetsWhenRetweet = true
-                }
             }
             }.addDisposableTo(dis)
         
@@ -125,10 +122,10 @@ class HomeCell: UITableViewCell {
             if Profile.profileAccount {
                 s.tweet.cellData.value = s.tweet.userMentions.count > 0 ? CellData.Reply(tweet: s.tweet, modal: true, replyAll: false) : CellData.Reply(tweet: s.tweet, modal: false, replyAll: false)
             } else {
-            s.tweet.cellData.value = s.tweet.userMentions.count > 0 || s.tweet.retweetTweetID != nil ? CellData.Reply(tweet: s.tweet, modal: true, replyAll: false) : CellData.Reply(tweet: s.tweet, modal: false, replyAll: false)
+                s.tweet.cellData.value = s.tweet.userMentions.count > 0 || s.tweet.retweetTweetID != nil ? CellData.Reply(tweet: s.tweet, modal: true, replyAll: false) : CellData.Reply(tweet: s.tweet, modal: false, replyAll: false)
             }
             }.addDisposableTo(dis)
-
+        
         
         let tapUserPic = UITapGestureRecognizer()
         tapUserPic.rx.event.subscribe(onNext: {[weak self] _ in

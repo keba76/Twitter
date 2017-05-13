@@ -62,16 +62,15 @@ class ModallyVC: UIViewController {
             break
         }
         
-//        if self.variety! != .fourBtn {
-//            self.fourBtn.isHidden = true
-//        }
+        //        if self.variety! != .fourBtn {
+        //            self.fourBtn.isHidden = true
+        //        }
         
         fourthBtn.rx.tap.asObservable().subscribe(onNext: { [unowned self] _ in
             switch self.variety! {
             case .fourBtn:
                 self.dismiss(animated: true, completion: {
                     self.user?.userData.value = UserData.TapSettingsBtn(user: self.user!, modal: false, showMute: false, publicReply: true, mute: false, follow: false)
-                    //self.delegateModally?.extensionModally(variety: VarietyModally.fourBtn)
                 })
             default:
                 break
@@ -128,12 +127,11 @@ class ModallyVC: UIViewController {
             } else {
                 self.dismiss(animated: true, completion: {
                     self.tweet?.replyBtn.onNext(false)
-                    //self.delegateModally?.extensionModally(variety: type)
                 })
             }
         }).addDisposableTo(dis)
     }
-
+    
 }
 
 extension ModallyVC: UIImagePickerControllerDelegate, UINavigationControllerDelegate {

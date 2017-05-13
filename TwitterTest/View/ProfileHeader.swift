@@ -52,13 +52,24 @@ class ProfileHeader: UIView {
                 self.imageBanner = image
             })
         }
-        SDWebImageManager.shared().downloadImage(with: user?.avatar, options: .continueInBackground, progress: { (_ , _) in
-            self.profileImageView.image = nil
-        }, completed: { (image, error, _ , _ , _) in
-            self.profileImageView.image = image
-            
-            self.images = image
-        })
+        
+        SDWebImageManager.shared().downloadImage(with: user?.avatar, progress: { (_ , _) in
+        }) { (image, error, cache , _ , _) in
+            if image == nil {
+                let urlString = self.user?.avatar?.absoluteString
+                if let url = urlString, url.contains("profile_images") {
+                    let newUrl = url.replace(target: ".jpg", withString: "_bigger.jpg")
+                    SDWebImageManager.shared().downloadImage(with: URL(string: newUrl), progress: { (_ , _) in
+                    }) { (image, error, cache , _ , _) in
+                        self.profileImageView.image = image
+                        self.images = image
+                    }
+                }
+            } else {
+                self.profileImageView.image = image
+                self.images = image
+            }
+        }
         
         settingsBtn.rx.tap.asObservable().subscribe(onNext: { [weak self] _ in
             guard let s = self else { return }
@@ -106,7 +117,7 @@ class ProfileHeader: UIView {
                 y: backgroundImageFrame.size.height + intrinsicBackView.origin.y + offset.origin.y,
                 width: intrinsicBackView.size.width,
                 height: intrinsicBackView.size.height)
-
+            
             s.user?.userData.value = UserData.ImageBannerScale(data: SomeTweetsData(convert: finalFrameBanner, frameImage: finalFrameImage, frameBackImage: finalFrameBackImage))
             
         }).addDisposableTo(dis)

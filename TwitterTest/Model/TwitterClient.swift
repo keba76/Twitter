@@ -28,7 +28,7 @@
             print(error.localizedDescription)
         }
         
-        TwitterClient.swifter.getHomeTimeline(count: 5, maxID: maxID, success: { json in
+        TwitterClient.swifter.getHomeTimeline(count: 20, maxID: maxID, success: { json in
             
             guard let twee = json.array else { return }
             //print(twee)
@@ -47,11 +47,8 @@
         let failureHandler: (Error) -> Void = { error in
             print(error.localizedDescription)
         }
-//        if let x = try? ProfileVC.userBehavior.value(), x.protected, !x.followYou {
-//            complited(self.tweet, nil)
-//            
-//        }
-        TwitterClient.swifter.getTimeline(for: id, count: 15, maxID: maxID, success: { json in
+        
+        TwitterClient.swifter.getTimeline(for: id, count: 20, maxID: maxID, success: { json in
             guard let twee = json.array else { return }
             //print(json)
             var viewModel =  twee

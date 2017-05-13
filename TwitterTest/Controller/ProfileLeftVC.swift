@@ -12,8 +12,6 @@ import RxCocoa
 
 class ProfileLeftVC: UIViewController, UIViewControllerTransitioningDelegate {
     
-    // @IBOutlet weak var userName: UILabel!
-    // @IBOutlet weak var userScreenName: UILabel!
     @IBOutlet weak var followingCountLbl: UILabel!
     @IBOutlet weak var followersCountLbl: UILabel!
     @IBOutlet weak var connection: InsetLabel!
@@ -62,7 +60,7 @@ class ProfileLeftVC: UIViewController, UIViewControllerTransitioningDelegate {
             if let controller = segue.destination as? FollowersAndFollowingVC {
                 controller.user = user
                 controller.typeUser = "Followers"
-            } 
+            }
         } else {
             if segue.identifier == "following" {
                 if let controller = segue.destination as? FollowersAndFollowingVC {
@@ -73,15 +71,6 @@ class ProfileLeftVC: UIViewController, UIViewControllerTransitioningDelegate {
         }
     }
     
-    
-    func animationController(forPresented presented: UIViewController, presenting: UIViewController, source: UIViewController) -> UIViewControllerAnimatedTransitioning? {
-        return LeftTransition()
-    }
-    func animationController(forDismissed dismissed: UIViewController) -> UIViewControllerAnimatedTransitioning? {
-        let leftTransiton = LeftTransition()
-        leftTransiton.dismiss = true
-        return leftTransiton
-    }
 }
 
 class InsetLabel: UILabel {
@@ -103,59 +92,7 @@ class InsetLabel: UILabel {
     }
 }
 
-class LeftTransition: NSObject ,UIViewControllerAnimatedTransitioning {
-    var dismiss = false
-    
-    func transitionDuration(using transitionContext: UIViewControllerContextTransitioning?) -> TimeInterval {
-        return 0.3
-    }
-    
-    func animateTransition(using transitionContext: UIViewControllerContextTransitioning){
-        // Get the two view controllers
-        let fromVC = transitionContext.viewController(forKey: UITransitionContextViewControllerKey.from)!
-        let toVC = transitionContext.viewController(forKey: UITransitionContextViewControllerKey.to)!
-        let containerView = transitionContext.containerView
-        
-        
-        var originRect = containerView.bounds
-        originRect.origin = CGPoint(x: originRect.width, y: 0)
-        
-        let view = UIView(frame: fromVC.view.frame)
-        view.backgroundColor = UIColor(red: 214/255, green: 214/255, blue: 214/255, alpha: 1)
-        view.alpha = dismiss ? 1 : 0
-        
-        containerView.addSubview(fromVC.view)
-        containerView.addSubview(view)
-        containerView.addSubview(toVC.view)
-        
-        
-        if dismiss{
-            containerView.bringSubview(toFront: view)
-            containerView.bringSubview(toFront: fromVC.view)
-            
-            UIView.animate(withDuration: transitionDuration(using: transitionContext), animations: { () -> Void in
-                fromVC.view.frame = originRect
-                view.alpha = 0
-            }, completion: { (_ ) -> Void in
-                fromVC.view.removeFromSuperview()
-                view.removeFromSuperview()
-                transitionContext.completeTransition(true )
-            })
-        }else{
-            toVC.view.frame = originRect
-            UIView.animate(withDuration: transitionDuration(using: transitionContext),
-                           animations: { () -> Void in
-                            view.alpha = 1
-                            toVC.view.center = containerView.center
-                            
-            }) { (_) -> Void in
-                fromVC.view.removeFromSuperview()
-                view.removeFromSuperview()
-                transitionContext.completeTransition(true )
-            }
-        }
-    }
-}
+
 
 
 

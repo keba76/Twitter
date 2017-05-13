@@ -107,7 +107,6 @@
 		5FE6E2051E979C8500AFE012 /* arrow.plist in Resources */ = {isa = PBXBuildFile; fileRef = 5FE6E2041E979C8500AFE012 /* arrow.plist */; };
 		5FE6E20C1E97A0AD00AFE012 /* CBStoreHouseRefreshControl.m in Sources */ = {isa = PBXBuildFile; fileRef = 5FE6E20B1E97A0AD00AFE012 /* CBStoreHouseRefreshControl.m */; };
 		5FE6E2101E97A14300AFE012 /* BarItem.m in Sources */ = {isa = PBXBuildFile; fileRef = 5FE6E20F1E97A14300AFE012 /* BarItem.m */; };
-		5FEF184B1E5D629400B91C8C /* ScrollActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FEF184A1E5D629400B91C8C /* ScrollActivityView.swift */; };
 		5FEF184D1E5E177E00B91C8C /* ProfileVC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FEF184C1E5E177E00B91C8C /* ProfileVC.swift */; };
 		5FEF18531E60913200B91C8C /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FEF18521E60913200B91C8C /* User.swift */; };
 		5FEF18551E617A1700B91C8C /* ProfileHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FEF18541E617A1700B91C8C /* ProfileHeader.swift */; };
@@ -223,7 +222,6 @@
 		5FE6E20E1E97A12E00AFE012 /* BarItem.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BarItem.h; sourceTree = "<group>"; };
 		5FE6E20F1E97A14300AFE012 /* BarItem.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BarItem.m; sourceTree = "<group>"; };
 		5FE6E2151E97A2C800AFE012 /* TwitterTest-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "TwitterTest-Bridging-Header.h"; sourceTree = "<group>"; };
-		5FEF184A1E5D629400B91C8C /* ScrollActivityView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ScrollActivityView.swift; sourceTree = "<group>"; };
 		5FEF184C1E5E177E00B91C8C /* ProfileVC.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ProfileVC.swift; sourceTree = "<group>"; };
 		5FEF18521E60913200B91C8C /* User.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		5FEF18541E617A1700B91C8C /* ProfileHeader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ProfileHeader.swift; sourceTree = "<group>"; };
@@ -407,7 +405,6 @@
 				5F73DFE21E52F34200465C8E /* DOFavoriteButton.swift */,
 				5F2257E41E55C99200B3E20C /* ActivityIndicator.swift */,
 				5F71079C1E4F3AC30068CF6A /* Assets.xcassets */,
-				5FEF184A1E5D629400B91C8C /* ScrollActivityView.swift */,
 				5FDC7CB11E6EE77D00D1B01D /* SlideInPresentationController.swift */,
 				5F62ACC71E715F2E009610A0 /* PopAnimatorImageScale.swift */,
 				5FDE65001E7535E4001C3811 /* AnimationController.swift */,
@@ -669,7 +666,6 @@
 				5F62ACC81E715F2E009610A0 /* PopAnimatorImageScale.swift in Sources */,
 				5FCEF1C21EA356B20095B9DA /* SpinerLayer.swift in Sources */,
 				5F9CD5C71EA265A0005A09FB /* SwifterTimelines.swift in Sources */,
-				5FEF184B1E5D629400B91C8C /* ScrollActivityView.swift in Sources */,
 				5F2257E71E56CFBB00B3E20C /* TwitterTableViewDelegate.swift in Sources */,
 				5F9CD5BA1EA265A0005A09FB /* SwifterFollowers.swift in Sources */,
 				5F9CD5B01EA265A0005A09FB /* SHA1.swift in Sources */,

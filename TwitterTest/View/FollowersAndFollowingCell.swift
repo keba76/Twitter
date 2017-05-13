@@ -28,7 +28,8 @@ class FollowersAndFollowingCell: UITableViewCell {
     @IBOutlet weak var settingsBtn: UIButton!
     
     var dis = DisposeBag()
-
+    var index: IndexPath?
+    
     var user: ModelUser! {
         didSet {
             userSetConfigure()
@@ -42,7 +43,7 @@ class FollowersAndFollowingCell: UITableViewCell {
     override func prepareForReuse() {
         dis = DisposeBag()
     }
-
+    
     func userSetConfigure() {
         
         userPic.sd_setImage(with: user.avatar)
@@ -61,5 +62,5 @@ class FollowersAndFollowingCell: UITableViewCell {
         }).addDisposableTo(dis)
         
     }
-
+    
 }

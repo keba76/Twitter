@@ -137,7 +137,7 @@ NSString *const yKey = @"y";
 - (void)scrollViewDidScroll
 {
     if (self.originalTopContentInset == 0) self.originalTopContentInset = self.scrollView.contentInset.top;
-    self.center = CGPointMake([UIScreen mainScreen].bounds.size.width/2, self.realContentOffsetY*krelativeHeightFactor);
+    self.center = CGPointMake([UIScreen mainScreen].bounds.size.width/2, self.realContentOffsetY*0.5);
     if (self.state == CBStoreHouseRefreshControlStateIdle)
         [self updateBarItemsWithProgress:self.animationProgress];
 }
@@ -152,11 +152,14 @@ NSString *const yKey = @"y";
             
             UIEdgeInsets newInsets = self.scrollView.contentInset;
             newInsets.top = self.originalTopContentInset + self.dropHeight;
+            
             CGPoint contentOffset = self.scrollView.contentOffset;
+            
             
             [UIView animateWithDuration:0 animations:^(void) {
                 self.scrollView.contentInset = newInsets;
                 self.scrollView.contentOffset = contentOffset;
+                //self.scrollView.contentOffset.y = self.scrollView.contentOffset.y + 20.0
             }];
             
 #pragma clang diagnostic push

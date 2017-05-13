@@ -26,6 +26,20 @@ class ImageLoadOperation: Operation {
         }
         SDWebImageManager.shared().downloadImage(with: url, progress: { (_ , _) in
         }) { (image, error, cache , _ , _) in
+            if image == nil {
+                let urlString = self.url.absoluteString
+                if urlString.contains("profile_images") {
+                  let newUrl = urlString.replace(target: ".jpg", withString: "_bigger.jpg")
+                    SDWebImageManager.shared().downloadImage(with: URL(string: newUrl), progress: { (_ , _) in
+                    }) { (image, error, cache , _ , _) in
+                        guard !self.isCancelled, let image = image else { return }
+                        self.image = image
+                        self.completionHandler?(image)
+                    }
+                }
+            
+            }
+            
             guard !self.isCancelled, let image = image else { return }
             self.image = image
             self.completionHandler?(image)
