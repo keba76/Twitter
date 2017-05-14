@@ -71,7 +71,6 @@
         //let tweeID = tweetOrigin.tweetID
         
         var tweets = [ViewModelTweet]()
-        //TwitterClient.swifter.sea
         TwitterClient.swifter.searchTweet(using: "to:@\(screenName)",count: 50,  sinceID: tweeID, success: { (json, jsons) in
             guard let twee = json.array else { return }
             twee.forEach({ json in

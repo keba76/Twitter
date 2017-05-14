@@ -9,14 +9,9 @@
 import UIKit
 import RxSwift
 
-class EmptyCell: UITableViewCell {
-    
-    
-}
+class EmptyCell: UITableViewCell {}
 
-class LockCell: UITableViewCell {
-    
-}
+class LockCell: UITableViewCell {}
 
 class FollowersAndFollowingCell: UITableViewCell {
     
@@ -28,25 +23,15 @@ class FollowersAndFollowingCell: UITableViewCell {
     @IBOutlet weak var settingsBtn: UIButton!
     
     var dis = DisposeBag()
-    var index: IndexPath?
+    override func prepareForReuse() { dis = DisposeBag() }
     
     var user: ModelUser! {
-        didSet {
-            userSetConfigure()
-        }
-    }
-    
-    override func awakeFromNib() {
-        super.awakeFromNib()
-    }
-    
-    override func prepareForReuse() {
-        dis = DisposeBag()
+        didSet { userSetConfigure() }
     }
     
     func userSetConfigure() {
         
-        userPic.sd_setImage(with: user.avatar)
+        user.userPicImage.asObservable().bindTo(userPic.rx.image).addDisposableTo(dis)
         
         userPic.layer.cornerRadius = 5
         userPic.clipsToBounds = true
@@ -60,7 +45,5 @@ class FollowersAndFollowingCell: UITableViewCell {
             guard let s = self else { return }
             s.user?.userData.value = UserData.TapSettingsBtn(user: s.user!, modal: true, showMute: false, publicReply: false, mute: false, follow: false)
         }).addDisposableTo(dis)
-        
     }
-    
 }

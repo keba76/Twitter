@@ -195,9 +195,6 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                     self.loadingView?.removeFromSuperview()
                     self.loadingMoreTweets = nil
                     self.loadingView = nil
-                    //let pointOffSetY = self.tableView.contentSize.height - self.tableView.bounds.height + 50.0
-                    //self.tableView.setContentOffset(CGPoint(x: 0.0, y: pointOffSetY), animated: true)
-                    //self.tableView.contentInset = UIEdgeInsets(top: self.tableHeaderHeight, left: 0, bottom: 50.0, right: 0)
                     UIView.animate(withDuration: 0.3) { self.tableView.contentInset = UIEdgeInsets(top: self.tableHeaderHeight, left: 0, bottom: 50.0, right: 0) }
                     return
                 }
@@ -505,10 +502,12 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
             headerView.frame = headerRect
         }
         
-        if !isMoreDataLoading.start, !isMoreDataLoading.finish && tweet?.count != nil && (tweet?.count)! > 8 {
-            let scrollViewContentHeight = tableView.contentSize.height
-            let scrollViewContentOffset = scrollViewContentHeight - tableView.bounds.height + 50.0
-            if tableView.contentOffset.y > scrollViewContentOffset, !self.stopOffset {
+        guard let twee = self.tweet else { return }
+        if twee.count < 8 {
+            UIView.animate(withDuration: 0.3) { self.tableView.contentInset = UIEdgeInsets(top: self.tableHeaderHeight, left: 0, bottom: 50.0, right: 0) }
+        }
+        if tableView.contentOffset.y > tableView.contentSize.height - tableView.bounds.height + 50.0, twee.count > 8, !self.stopOffset {
+            if !isMoreDataLoading.start, !isMoreDataLoading.finish  {
                 NSObject.cancelPreviousPerformRequests(withTarget: self)
                 perform(#selector(UIScrollViewDelegate.scrollViewDidEndScrollingAnimation), with: nil, afterDelay: 0.3)
                 isMoreDataLoading.start = true
@@ -522,12 +521,14 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                 DispatchQueue.global().asyncAfter(deadline: .now() + 2.0, execute: {
                     self.reloadData(append: true)
                 })
+                
+            } else if isMoreDataLoading.start, isMoreDataLoading.finish {
+                isMoreDataLoading.finish = false
+                NSObject.cancelPreviousPerformRequests(withTarget: self)
+                perform(#selector(UIScrollViewDelegate.scrollViewDidEndScrollingAnimation), with: nil, afterDelay: 0.3)
             }
-        } else if isMoreDataLoading.start, isMoreDataLoading.finish {
-            isMoreDataLoading.finish = false
-            NSObject.cancelPreviousPerformRequests(withTarget: self)
-            perform(#selector(UIScrollViewDelegate.scrollViewDidEndScrollingAnimation), with: nil, afterDelay: 0.3)
         }
+        
     }
     
     func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {

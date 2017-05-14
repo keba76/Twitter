@@ -16,6 +16,9 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
     
     var dis = DisposeBag()
     
+    fileprivate let imageLoadQueue = OperationQueue()
+    fileprivate var imageLoadOperations = [IndexPath: ImageLoadOperation]()
+    
     var isMoreDataLoading = (start: false, finish: false, download: false)
     var instance: TwitterClient?
     var download = false
@@ -39,6 +42,10 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
         tableView.delegate = self
         tableView.dataSource = self
         tableView.tableFooterView = UIView()
+        
+        if #available(iOS 10.0, *) {
+            tableView.prefetchDataSource = self
+        }
         
         self.navigationItem.title = self.typeUser == "Followers" ? "Followers" : "Followings"
         
@@ -83,6 +90,7 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
                 }
                 self.users.append(contentsOf: user)
                 self.cursor = cursor
+                if self.cursor == "0" { self.tableView.contentInset = UIEdgeInsets(top: 64.0, left: 0, bottom: 0, right: 0) }
                 if self.isMoreDataLoading.finish {
                     self.isMoreDataLoading = (start: false, finish: true, download: false)
                     let pointOffSetY = self.tableView.contentSize.height - self.tableView.bounds.height - 20.0
@@ -104,8 +112,6 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
                 } else if !self.isMoreDataLoading.finish {
                     self.isMoreDataLoading.download = true
                 }
-                //self.cursor = cursor
-                //self.tableView.reloadData()
             } else {
                 self.download = true
                 self.viewProgress?.stopAnimating()
@@ -122,6 +128,7 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
                 
                 self.users.append(contentsOf: user)
                 self.cursor = cursor
+                if self.cursor == "0" { self.tableView.contentInset = UIEdgeInsets(top: 64.0, left: 0, bottom: 0, right: 0) }
                 let section = IndexSet(integer: 0)
                 self.tableView.reloadSections(section, with: .bottom)
             }
@@ -180,6 +187,19 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
         } else if self.users.count > 0  {
             let cell = tableView.dequeueReusableCell(withIdentifier: "FollowersAndFollowingCell", for: indexPath) as! FollowersAndFollowingCell
             cell.user = users[indexPath.row]
+            if let imageLoadOperation = imageLoadOperations[indexPath],
+                let image = imageLoadOperation.image {
+                users[indexPath.row].userPicImage.onNext(image)
+            } else {
+                let imageLoadOperation = ImageLoadOperation(url: users[indexPath.row].avatar!)
+                imageLoadOperation.completionHandler = { [weak self] (image) in
+                    guard let strongSelf = self else { return }
+                    strongSelf.users[indexPath.row].userPicImage.onNext(image)
+                    strongSelf.imageLoadOperations.removeValue(forKey: indexPath)
+                }
+                imageLoadQueue.addOperation(imageLoadOperation)
+                imageLoadOperations[indexPath] = imageLoadOperation
+            }
             return cell
         } else {
             return UITableViewCell()
@@ -187,10 +207,8 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
     }
     
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        if !isMoreDataLoading.start, !isMoreDataLoading.finish, self.cursor != "0" && users.count > 10 {
-            let scrollViewContentHeight = tableView.contentSize.height
-            let scrollViewContentOffset = scrollViewContentHeight - tableView.bounds.height + 5.0
-            if tableView.contentOffset.y > scrollViewContentOffset {
+        if tableView.contentOffset.y > tableView.contentSize.height - tableView.bounds.height + 50.0, self.cursor != "0", users.count > 10 {
+            if !isMoreDataLoading.start, !isMoreDataLoading.finish {
                 NSObject.cancelPreviousPerformRequests(withTarget: self)
                 perform(#selector(UIScrollViewDelegate.scrollViewDidEndScrollingAnimation), with: nil, afterDelay: 0.3)
                 isMoreDataLoading.start = true
@@ -204,11 +222,12 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
                 DispatchQueue.global().asyncAfter(deadline: .now() + 2.0, execute: {
                     self.reloadData(append: true)
                 })
+                
+            } else if isMoreDataLoading.start, isMoreDataLoading.finish {
+                isMoreDataLoading.finish = false
+                NSObject.cancelPreviousPerformRequests(withTarget: self)
+                perform(#selector(UIScrollViewDelegate.scrollViewDidEndScrollingAnimation), with: nil, afterDelay: 0.3)
             }
-        } else if isMoreDataLoading.start, isMoreDataLoading.finish {
-            isMoreDataLoading.finish = false
-            NSObject.cancelPreviousPerformRequests(withTarget: self)
-            perform(#selector(UIScrollViewDelegate.scrollViewDidEndScrollingAnimation), with: nil, afterDelay: 0.3)
         }
     }
     
@@ -264,5 +283,46 @@ extension FollowersAndFollowingVC: UIViewControllerTransitioningDelegate {
     }
     func animationController(forDismissed dismissed: UIViewController) -> UIViewControllerAnimatedTransitioning? {
         return SlideInPresentationAnimator(isPresentation: false)
+    }
+}
+
+extension FollowersAndFollowingVC: UITableViewDataSourcePrefetching {
+    
+    func tableView(_ tableView: UITableView, didEndDisplaying cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        
+            guard let imageLoadOperation = imageLoadOperations[indexPath] else { return }
+            imageLoadOperation.cancel()
+            imageLoadOperations.removeValue(forKey: indexPath)
+            
+            #if DEBUG_CELL_LIFECYCLE
+                print(String.init(format: "didEndDisplaying #%i", indexPath.row))
+            #endif
+        
+    }
+    
+    func tableView(_ tableView: UITableView, prefetchRowsAt indexPaths: [IndexPath]) {
+        for indexPath in indexPaths {
+            if let _ = imageLoadOperations[indexPath] { continue }
+                    let imageLoadOperation = ImageLoadOperation(url: users[indexPath.row].avatar!)
+                    imageLoadQueue.addOperation(imageLoadOperation)
+                    imageLoadOperations[indexPath] = imageLoadOperation
+              
+            
+            #if DEBUG_CELL_LIFECYCLE
+                print(String.init(format: "prefetchRowsAt #%i", indexPath.row))
+            #endif
+        }
+    }
+    
+    func tableView(_ tableView: UITableView, cancelPrefetchingForRowsAt indexPaths: [IndexPath]) {
+        for indexPath in indexPaths {
+           if let _ = imageLoadOperations[indexPath] {
+                imageLoadOperations[indexPath]!.cancel()
+                imageLoadOperations.removeValue(forKey: indexPath)
+            }
+            #if DEBUG_CELL_LIFECYCLE
+                print(String.init(format: "cancelPrefetchingForRowsAt #%i", indexPath.row))
+            #endif
+        }
     }
 }

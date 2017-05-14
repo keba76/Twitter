@@ -106,7 +106,7 @@ class SplashVC: UIViewController, SegueHandlerType {
         }, failure: { error in print(error.localizedDescription)})
         
         TwitterClient.swifter.getHomeTimeline(count: 20, maxID: nil, success: { json in
-            print(json)
+            //print(json)
             guard let twee = json.array else { return }
             let viewModel =  twee
                 .map {Tweet(dict: $0)}

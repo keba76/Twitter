@@ -137,7 +137,6 @@ extension Array where Element:Hashable {
             
             return self.flatMap { element in
                 guard seen[element] == nil else {
-                    //flatMap flattens out nil values
                     return nil
                 }
                 seen[element] = true

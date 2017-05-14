@@ -54,13 +54,10 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
     
     @IBOutlet weak var tableView: UITableView!
     
-    var positionRefresh = false
-    var indexRefresh = 0
-    var refreshOffset = false
-    
     var animationController: AnimationController = AnimationController()
     var dataMediaScale: SomeTweetsData?
     
+    var instance: TwitterClient?
     let dis = DisposeBag()
     
     fileprivate let imageLoadQueue = OperationQueue()
@@ -68,20 +65,17 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
     fileprivate var imageLoadOperationsMedia = [IndexPath: ImageLoadOperation]()
     
     var refreshControler: CBStoreHouseRefreshControl?
-    
-    var instance: TwitterClient?
+    var tempTweetArray: [ViewModelTweet]?
+    var tweetViewConstraints: NSLayoutConstraint?
+    var newTweetsLbl: UILabel?
+    var myView: UIView?
+    var indexRefresh = 0
+    var positionRefresh = false
     
     var loadingMoreTweets: NVActivityIndicatorView?
     var loadingView: UIView?
     var stopOffset = false
-    
-    var tweetViewConstraints: NSLayoutConstraint?
-    var newTweetsLbl: UILabel?
-    var myView: UIView?
-    
     var isMoreDataLoading = (start: false, finish: false, download: false)
-    
-    var contextSizeY: CGFloat = 0.0
     
     var lastTweetID: String?
     var tweet: [ViewModelTweet]? {
@@ -119,8 +113,6 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
         tableView.tableFooterView = UIView()
         
         self.navigationItem.titleView = UIImageView(image: UIImage(named: "Tweeter logo"))
-        //        var inset = tableView.contentInset
-        //        inset.bottom += 60.0
         tableView.contentInset.bottom += 60.0
         
         if self.tweet == nil {
@@ -246,29 +238,30 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
                 }
             } else {
                 
-                var uniqueTemp = [ViewModelTweet]()
+                self.tempTweetArray = [ViewModelTweet]()
                 if let tempTweet = self.tweet {
                     for value in data {
                         if tempTweet.contains(value) {
                             break
                         }
-                        uniqueTemp.append(value)
+                        self.tempTweetArray!.append(value)
                     }
                 }
-                if data.count > 0, uniqueTemp.count > 0 {
-                    for x in uniqueTemp {
+                if data.count > 0, self.tempTweetArray!.count > 0 {
+                    for x in self.tempTweetArray! {
                         x.cellData.asObservable().subscribe(onNext: { data in
                             self.varietyCellAction(data: data)
                         }).addDisposableTo(self.dis)
                     }
-                    self.tweet?.insert(contentsOf: uniqueTemp, at: 0)
-                    self.indexRefresh = uniqueTemp.count
+                    self.lastTweetID = self.tweet?.last?.tweetID
+                    self.indexRefresh = self.tempTweetArray!.count
                     self.newTweetsLbl?.text = "\(self.indexRefresh) New Tweets"
                     self.refreshControler?.finishingLoading()
                     NSObject.cancelPreviousPerformRequests(withTarget: self)
                     self.perform(#selector(UIScrollViewDelegate.scrollViewDidEndScrollingAnimation), with: nil, afterDelay: 1.0)
                 } else {
                     self.refreshControler?.finishingLoading()
+                    self.lastTweetID = self.tweet?.last?.tweetID
                 }
             }
         }
@@ -365,6 +358,7 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return tweet?.count ?? 0
     }
+    
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let twee = tweet?[indexPath.row] else { return UITableViewCell() }
         switch twee {
@@ -436,7 +430,8 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
     }
     
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        if tableView.contentOffset.y > tableView.contentSize.height - tableView.bounds.height + 50.0, (tweet?.count)! > 8, !self.stopOffset {
+        guard let twee = self.tweet else { return }
+        if tableView.contentOffset.y > tableView.contentSize.height - tableView.bounds.height + 50.0, twee.count > 8, !self.stopOffset {
             if !isMoreDataLoading.start, !isMoreDataLoading.finish  {
                 NSObject.cancelPreviousPerformRequests(withTarget: self)
                 perform(#selector(UIScrollViewDelegate.scrollViewDidEndScrollingAnimation), with: nil, afterDelay: 0.3)
@@ -471,6 +466,7 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
             if self.indexRefresh == 0, position.maxY > 62.0 {
                 self.positionRefresh = false
                 self.tweetViewConstraints?.constant = 0.0
+                self.tempTweetArray = nil
                 UIView.animate(withDuration: 0.3) { self.view.layoutIfNeeded() }
             }
         }
@@ -492,25 +488,15 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
                 self.tableView.insertRows(at: tempIndex, with: .top)
                 
             } else {
-                var viewScreen = self.view.snapshotView(afterScreenUpdates: false)
-                self.view.addSubview(viewScreen!)
-                self.view.bringSubview(toFront: viewScreen!)
-                self.view.bringSubview(toFront: self.myView!)
+                self.tweet?.insert(contentsOf: self.tempTweetArray!, at: 0)
                 let index = IndexPath(item: self.indexRefresh, section: 0)
                 self.tableView.reloadData()
                 self.tableView.scrollToRow(at: index, at: .top, animated: false)
                 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05, execute: {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.02, execute: {
                     self.tweetViewConstraints?.constant = 23.0
-                    UIView.animate(withDuration: 0.3) { self.view.layoutIfNeeded() }
-                    //                    self.imageLoadOperations = [:]
-                    //                    self.imageLoadOperationsMedia = [:]
-                })
-                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: {
-                    viewScreen?.removeFromSuperview()
-                    viewScreen = nil
                     self.positionRefresh = true
+                    UIView.animate(withDuration: 0.3) { self.view.layoutIfNeeded() }
                 })
             }
             
@@ -528,7 +514,6 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
                     self.tableView.reloadData()
                 })
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.4, execute: {
-                    
                     self.tableView.setContentOffset(CGPoint(x: 0.0, y: pointOffSetY + (self.tableView.contentOffset.y - pointOffSetY) + 150.0), animated: true)
                     self.isMoreDataLoading.finish = false
                 })

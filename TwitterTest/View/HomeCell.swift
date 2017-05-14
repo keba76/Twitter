@@ -48,7 +48,7 @@ class HomeCell: UITableViewCell {
             if tweet.retweetedType.isEmpty {
                 logoHeightConstraint.constant = 0
                 lblHeihtConstraint.constant = 0
-                picBackConstraint.constant = 3
+                picBackConstraint.constant = 6
             } else {
                 retweetedLbl.text = tweet.retweetedType
                 logoHeightConstraint.constant = 12

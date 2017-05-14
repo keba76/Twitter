@@ -22,7 +22,6 @@ class ModelTweet {
     let favoriteBtn: Bool
     var retweetCount: Int
     var retweeted: Bool
-    //var retweeted: Bool
     var favoriteCount: Int
     var favorited: Bool
     var user: User
@@ -55,19 +54,11 @@ class ModelTweet {
         retweetedScreenName = parse.retweetedScreenName!
         userMentions = parse.userMentions
         if parse.quote != nil { quote = ModelTweet(parse: parse.quote!)}
-       
-        
-        
-        
-        
-        
-        
-        
         
         // TEXTATTRIBUTED
         var displayURL = [String]()
         var textParse = parse.text!
-        
+        textParse = textParse.replace(target: "\n", withString: "")
         if let urls = parse.urls, urls.count > 0 {
             for json in urls {
                 let urlText = json["url"].string
@@ -190,7 +181,7 @@ class ModelTweet {
             style.lineBreakMode = NSLineBreakMode.byWordWrapping
             text.addAttribute(NSParagraphStyleAttributeName, value: style, range: NSRange(location: 0, length: text.string.characters.count))
         }
-                
+        
         if parse.retweetTweetID != nil, parse.retweetBtn, parse.retweetedName != Profile.account.name{
             retweetedType = "Retweeted by \(parse.retweetedName!) and You"
         } else if parse.retweetTweetID != nil {
@@ -201,13 +192,8 @@ class ModelTweet {
         } else {
             retweetedType = ""
         }
-        
     }
-    
-    
 }
-
-
 
 class ModelUser {
     let id: String
@@ -222,9 +208,10 @@ class ModelUser {
     var entitiesDescription: [JSON]?
     var protected: Bool
     var followYou: Bool
+    var userPicImage: BehaviorSubject<UIImage>
     var userData: Variable<UserData>
     
-    init() { id = ""; name = ""; screenName = ""; location = ""; followers = ""; following = ""; description = ""; protected = false; followYou = false; userData =  Variable<UserData>(UserData.tempValue(action: false))}
+    init() { id = ""; name = ""; screenName = ""; location = ""; followers = ""; following = ""; description = ""; protected = false; followYou = false; userPicImage = BehaviorSubject<UIImage>(value: UIImage.getEmptyImageWithColor(color: UIColor.white)); userData =  Variable<UserData>(UserData.tempValue(action: false))}
     
     init(parse: User) {
         id = parse.id!
@@ -240,7 +227,7 @@ class ModelUser {
         followYou = parse.followYou
         entitiesDescription = (parse.entities?["description"]?["urls"].array)!
         userData = Variable<UserData>(UserData.tempValue(action: false))
-        
+        userPicImage = BehaviorSubject<UIImage>(value: UIImage.getEmptyImageWithColor(color: UIColor.white))
     }
     
 }
@@ -270,100 +257,12 @@ enum UserData: Equatable {
             return false
         }
     }
-
+    
     case tempValue(action: Bool)
     case TapSettingsBtn(user: ModelUser, modal: Bool, showMute: Bool, publicReply: Bool, mute: Bool, follow: Bool)
     case ImageUserScale(data: SomeTweetsData)
     case ImageBannerScale(data: SomeTweetsData)
 }
 
-//class CustomQuoteView: UIView {
-//    
-//    var view: UIView
-//    var quoteNameLbl: UILabel
-//    var quoteNickLbl: UILabel
-//    var quoteImage: UIImageView?
-//    var quoteTextLbl: UILabel
-//    
-////    override init(frame: CGRect) {
-////        super.init(frame: frame)
-////    }
-//    
-//    init(quote: ModelTweet) {
-//        view = UIView()
-//        view.backgroundColor = UIColor(red: 245/257, green: 245/257, blue: 245/257, alpha: 1.0)
-//        view.layer.cornerRadius = 4.0
-//     
-//        
-//        quoteNameLbl = UILabel()
-//        quoteNameLbl.text = quote.userName
-//        quoteNameLbl.textColor = UIColor.black
-//        quoteNameLbl.font = UIFont.boldSystemFont(ofSize: 14.0)
-//        quoteNameLbl.textAlignment = .left
-//        quoteNameLbl.translatesAutoresizingMaskIntoConstraints = false
-//        view.addSubview(quoteNameLbl)
-//        quoteNameLbl.setContentCompressionResistancePriority(UILayoutPriorityRequired, for: .horizontal)
-//        quoteNameLbl.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 14.0).isActive = true
-//        quoteNameLbl.topAnchor.constraint(equalTo: view.topAnchor, constant: 11.0).isActive = true
-//        
-//        quoteNickLbl = UILabel()
-//        quoteNickLbl.text = quote.userScreenName
-//        quoteNickLbl.textColor = UIColor.gray
-//        quoteNickLbl.font = UIFont.systemFont(ofSize: 11.0)
-//        quoteNickLbl.textAlignment = .left
-//        quoteNickLbl.translatesAutoresizingMaskIntoConstraints = false
-//        view.addSubview(quoteNickLbl)
-//        quoteNickLbl.setContentCompressionResistancePriority(UILayoutPriorityDefaultLow, for: .horizontal)
-//        quoteNickLbl.setContentCompressionResistancePriority(UILayoutPriorityRequired, for: .vertical)
-//        quoteNickLbl.leadingAnchor.constraint(equalTo: quoteNameLbl.trailingAnchor, constant: 5.0).isActive = true
-//        quoteNickLbl.lastBaselineAnchor.constraint(equalTo: quoteNameLbl.lastBaselineAnchor).isActive = true
-//        quoteNickLbl.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -14.0)
-//        
-//        quoteTextLbl = UILabel()
-//        quoteTextLbl.textColor = UIColor.gray
-//        quoteTextLbl.attributedText = quote.text
-//        quoteTextLbl.numberOfLines = 0
-//        quoteTextLbl.font = UIFont.systemFont(ofSize: 13.0)
-//        quoteTextLbl.textAlignment = .left
-//        quoteTextLbl.translatesAutoresizingMaskIntoConstraints = false
-//        view.addSubview(quoteTextLbl)
-//        quoteTextLbl.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -14.0).isActive = true
-//        quoteTextLbl.topAnchor.constraint(equalTo: quoteNameLbl.bottomAnchor, constant: 2.0).isActive = true
-//        let botton = quoteTextLbl.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -12.0)
-//        botton.isActive = true
-//        var leading = quoteTextLbl.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 14.0)
-//        leading.isActive = true
-//        
-//        if let image = quote.mediaImageURLs?.first {
-//            quoteImage = UIImageView()
-//            quoteImage?.backgroundColor = UIColor.black
-//            quoteImage?.contentMode = .scaleAspectFill
-//            quoteImage?.clipsToBounds = true
-//            quoteImage?.layer.cornerRadius = 2.0
-//            quoteImage?.translatesAutoresizingMaskIntoConstraints = false
-//            view.addSubview(quoteImage!)
-//            quoteImage?.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -12.0).isActive = true
-//            quoteImage?.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12.0).isActive = true
-//            quoteImage?.widthAnchor.constraint(equalTo: (quoteImage?.heightAnchor)!, multiplier: 1.30).isActive = true
-//            quoteImage?.topAnchor.constraint(equalTo: quoteNameLbl.bottomAnchor, constant: 6.0).isActive = true
-//            quoteImage?.heightAnchor.constraint(equalToConstant: 58.0).isActive = true
-//            quoteImage?.setContentCompressionResistancePriority(UILayoutPriorityDefaultLow, for: .horizontal)
-//            leading.isActive = false
-//            leading = quoteTextLbl.leadingAnchor.constraint(equalTo: (quoteImage?.trailingAnchor)!, constant: 12.0)
-//            leading.isActive = true
-//            //botton.isActive = false
-//            
-//            quoteImage?.sd_setImage(with: image)
-//            
-//        }
-//        super.init(frame: view.frame)
-//    }
-//    
-//    required init?(coder aDecoder: NSCoder) {
-//        fatalError("init(coder:) has not been implemented")
-//    }
-//
-//    
-//    
-//}
+
 

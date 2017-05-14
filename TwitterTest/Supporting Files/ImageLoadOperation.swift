@@ -26,10 +26,39 @@ class ImageLoadOperation: Operation {
         }
         SDWebImageManager.shared().downloadImage(with: url, progress: { (_ , _) in
         }) { (image, error, cache , _ , _) in
+            if image != nil, cache == .none {
+                let urlString = self.url.absoluteString
+                if urlString.contains("profile_images") {
+                    DispatchQueue.global(qos: .userInitiated).async {
+                        let tempImage = image?.imageWithImage(image: image!, scaledToSize: CGSize(width: 75.0, height: 75.0))
+                        SDWebImageManager.shared().saveImage(toCache: tempImage, for: self.url)
+                        DispatchQueue.main.async {
+                            
+                            guard !self.isCancelled, let image = image else { return }
+                            self.image = image
+                            self.completionHandler?(image)
+                        }
+                    }
+                } else {
+                    let w = image!.size.width
+                    let h = image!.size.height
+                    let size = w/h > 0 ? CGSize(width: 380.0, height: 380/(w/h)) : CGSize(width: 380.0, height: 380 * (w/h))
+                    DispatchQueue.global(qos: .userInitiated).async {
+                        let tempImage = image?.imageWithImage(image: image!, scaledToSize: size)
+                        SDWebImageManager.shared().saveImage(toCache: tempImage, for: self.url)
+                        DispatchQueue.main.async {
+                            
+                            guard !self.isCancelled, let image = image else { return }
+                            self.image = image
+                            self.completionHandler?(image)
+                        }
+                    }
+                }
+            }
             if image == nil {
                 let urlString = self.url.absoluteString
                 if urlString.contains("profile_images") {
-                  let newUrl = urlString.replace(target: ".jpg", withString: "_bigger.jpg")
+                    let newUrl = urlString.replace(target: ".jpg", withString: "_bigger.jpg")
                     SDWebImageManager.shared().downloadImage(with: URL(string: newUrl), progress: { (_ , _) in
                     }) { (image, error, cache , _ , _) in
                         guard !self.isCancelled, let image = image else { return }
@@ -37,9 +66,8 @@ class ImageLoadOperation: Operation {
                         self.completionHandler?(image)
                     }
                 }
-            
+                
             }
-            
             guard !self.isCancelled, let image = image else { return }
             self.image = image
             self.completionHandler?(image)
