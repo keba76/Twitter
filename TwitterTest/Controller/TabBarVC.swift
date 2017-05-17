@@ -38,7 +38,7 @@ class TabBarVC: UITabBarController, UITabBarControllerDelegate {
                 let controller = self.storyboard?.instantiateViewController(withIdentifier: "ProfileVC") as! ProfileVC
                 x.viewControllers.removeAll()
                 x.viewControllers.append(controller)
-                Profile.account.userData = Variable<UserData>(UserData.tempValue(action: false))
+                Profile.account?.userData = Variable<UserData>(UserData.tempValue(action: false))
                 controller.user = Profile.account
                 x.popToRootViewController(animated: true)
             }

@@ -46,7 +46,7 @@ class ProfileLeftVC: UIViewController, UIViewControllerTransitioningDelegate {
             self.connection.text = "does not follow you"
             self.connection.backgroundColor = UIColor(red: 190/255, green: 190/255, blue: 190/255, alpha: 1)
         }
-        if Profile.account.id == user.id {
+        if Profile.account?.id == user.id {
             self.connection.isHidden = true
         }
         

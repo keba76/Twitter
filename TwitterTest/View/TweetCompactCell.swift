@@ -13,4 +13,8 @@ class TweetCompactCell: HomeCell {
     override func tweetSetConfigure() {
         super.tweetSetConfigure()
     }
+//    override func awakeFromNib() {
+//        super.awakeFromNib()
+//        layoutIfNeeded()
+//    }
 }

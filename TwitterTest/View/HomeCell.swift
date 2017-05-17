@@ -98,7 +98,7 @@ class HomeCell: UITableViewCell {
                 if TabBarVC.tab == .profileVC {
                     //Profile.reloadingProfileTweetsWhenRetweet = false
                 }
-            } else if s.tweet.user.id != Profile.account.id {
+            } else if s.tweet.user.id != Profile.account?.id {
                 s.retweetBtn.select()
                 s.tweet.retweeted = true
                 s.tweet.cellData.value = CellData.Retweet(index: s.indexPath!, convert: CGPoint.zero)

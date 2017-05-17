@@ -35,9 +35,9 @@ class AnimationController: NSObject, UIViewControllerAnimatedTransitioning {
         self.fromDelegate = fromDelegate
         self.toDelegate = toDelegate
         self.alphaTabs = alphaTabs
-        if let frameImage = data.frameImage, let frameBackImage = data.frameBackImage {
+        if let frameImage = data.frameImage, data.frameBackImage != CGRect.zero {
             self.frameImage = frameImage
-            self.frameBackImage = frameBackImage
+            self.frameBackImage = data.frameBackImage
             self.secondImage = data.secondImageForBanner
         } else {
             self.frameImage = nil

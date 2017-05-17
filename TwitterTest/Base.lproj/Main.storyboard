@@ -3355,7 +3355,7 @@
     </resources>
     <inferredMetricsTieBreakers>
         <segue reference="iS1-hE-7Aw"/>
-        <segue reference="314-F1-liZ"/>
         <segue reference="vAl-4h-Bei"/>
+        <segue reference="314-F1-liZ"/>
     </inferredMetricsTieBreakers>
 </document>

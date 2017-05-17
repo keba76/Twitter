@@ -75,8 +75,9 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
         headerView = tableView.tableHeaderView as! ProfileHeader
         tableView.tableHeaderView = nil
         tableView.addSubview(headerView)
-        tableView.contentInset = UIEdgeInsets(top: tableHeaderHeight - 64, left: 0, bottom: 0, right: 0)
-        tableView.contentOffset = CGPoint(x: 0.0, y: -(tableHeaderHeight + 64))
+        tableView.contentInset = UIEdgeInsets(top: tableHeaderHeight - 64.0, left: 0, bottom: 0, right: 0)
+        //tableView.contentOffset = CGPoint(x: 0.0, y: -(tableHeaderHeight + 64))
+        
         headerView.frame = CGRect(x: 0, y: -(tableHeaderHeight), width: tableView.bounds.width, height: tableHeaderHeight)
         self.headerView.user = user
         
@@ -106,7 +107,9 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
             self.reloadData()
         }
         
-        tableView.contentInset.bottom += 60.0
+        var inset = tableView.contentInset
+        inset.bottom += 60.0
+        tableView.contentInset = inset
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -446,6 +449,7 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                     imageLoadOperationsMedia[indexPath] = imageLoadOperationMedia
                 }
             }
+            cell.layoutIfNeeded()
             return cell
         case let quote where quote.quote != nil:
             let cell = tableView.dequeueReusableCell(withIdentifier: "quoteCompact", for: indexPath) as! QuoteCell
@@ -463,6 +467,7 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                 imageLoadQueue.addOperation(imageLoadOperation)
                 imageLoadOperations[indexPath] = imageLoadOperation
             }
+            cell.layoutIfNeeded()
             return cell
         case let compact where !compact.tweetID.isEmpty:
             let cell = tableView.dequeueReusableCell(withIdentifier: "compact", for: indexPath) as! TweetCompactCell
@@ -481,6 +486,7 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                 imageLoadQueue.addOperation(imageLoadOperation)
                 imageLoadOperations[indexPath] = imageLoadOperation
             }
+            cell.layoutIfNeeded()
             return cell
             
         default:
@@ -494,9 +500,11 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
         tableView.deselectRow(at: indexPath, animated: true)
     }
     
+    
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        var headerRect = CGRect(x: 0, y: -(tableHeaderHeight), width: tableView.bounds.width, height: tableHeaderHeight)
+        //var headerRect = CGRect(x: 0, y: -(tableHeaderHeight), width: tableView.bounds.width, height: tableHeaderHeight)
         if tableView.contentOffset.y < -(tableHeaderHeight) {
+            var headerRect = CGRect(x: 0, y: -(tableHeaderHeight), width: tableView.bounds.width, height: tableHeaderHeight)
             headerRect.origin.y = tableView.contentOffset.y
             headerRect.size.height = -tableView.contentOffset.y
             headerView.frame = headerRect

@@ -11,7 +11,7 @@ import RxSwift
 import SafariServices
 
 struct Profile {
-    static var account = ModelUser()
+    static var account: ModelUser?
     static var arrayIdFollowers = [JSON]()
     static var startTimeLine: [ViewModelTweet]?
     static var reloadingProfileTweetsWhenRetweet = 0
@@ -26,12 +26,12 @@ struct SomeTweetsData {
     var scaleAvatarImage = false
     var scaleBanner = false
     var frameImage: CGRect?
-    var frameBackImage: CGRect?
+    var frameBackImage = CGRect.zero
     var secondImageForBanner: UIImage?
     
     init(){}
     
-    init(convert: CGRect? = nil, indexPath: IndexPath? = nil, image: UIImage? = nil, scaleAvatarImage: Bool = false, scaleBanner: Bool = false, frameImage: CGRect? = nil, frameBackImage: CGRect? = nil, secondImageForBanner: UIImage? = nil) {
+    init(convert: CGRect? = nil, indexPath: IndexPath? = nil, image: UIImage? = nil, scaleAvatarImage: Bool = false, scaleBanner: Bool = false, frameImage: CGRect? = nil, frameBackImage: CGRect = CGRect.zero, secondImageForBanner: UIImage? = nil) {
         
         self.convert = convert
         self.indexPath = indexPath
@@ -53,6 +53,8 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
     }
     
     @IBOutlet weak var tableView: UITableView!
+    
+   var heightAtIndexPath = Dictionary<IndexPath, CGFloat>()
     
     var animationController: AnimationController = AnimationController()
     var dataMediaScale: SomeTweetsData?
@@ -108,7 +110,7 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
         tableView.delegate = self
         tableView.dataSource = self
         
-        tableView.estimatedRowHeight = 270.0
+        //tableView.estimatedRowHeight = 270.0
         tableView.rowHeight = UITableViewAutomaticDimension
         tableView.tableFooterView = UIView()
         
@@ -180,7 +182,7 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
         let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main).instantiateViewController(withIdentifier: "ReplyAndNewTweet") as! UINavigationController
         if let controller = storyboard.viewControllers.first as? ReplyAndNewTweetVC {
             let user = Profile.account
-            user.screenName = ""
+            user?.screenName = ""
             controller.userReply = nil
             self.present(storyboard, animated: true, completion: nil)
         }
@@ -359,6 +361,7 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
         return tweet?.count ?? 0
     }
     
+    
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let twee = tweet?[indexPath.row] else { return UITableViewCell() }
         switch twee {
@@ -453,7 +456,9 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
                 perform(#selector(UIScrollViewDelegate.scrollViewDidEndScrollingAnimation), with: nil, afterDelay: 0.3)
             }
         }
-        self.refreshControler?.scrollViewDidScroll()
+        if tableView.contentOffset.y < -64.0 {
+            self.refreshControler?.scrollViewDidScroll()
+        }
         if self.positionRefresh {
             let frameCell = self.tableView.rectForRow(at: IndexPath(row: self.indexRefresh - 1, section: 0))
             let position = self.tableView.convert(frameCell, to: self.tableView.superview)
@@ -525,6 +530,52 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
+    }
+//    func tableView(tableView: UITableView, estimatedHeightForRowAtIndexPath indexPath: NSIndexPath) -> CGFloat {
+//        // This method will get your cell identifier based on your data
+//        let cellType = reuse
+//        
+//        if cellType == kFirstCellIdentifier
+//        return kFirstCellHeight
+//        else if cellType == kSecondCellIdentifier
+//        return kSecondCellHeight
+//        else if cellType == kThirdCellIdentifier
+//        return kThirdCellHeight
+//        else
+//        return UITableViewAutomaticDimension
+//    }
+    
+    func tableView(_ tableView: UITableView, estimatedHeightForRowAt indexPath: IndexPath) -> CGFloat {
+        if let height = self.heightAtIndexPath[indexPath] {
+            return height
+        } else {
+            guard let twee = self.tweet?[indexPath.row] else { return UITableViewAutomaticDimension }
+            if !twee.mediaImageURLs.isEmpty || twee.quote != nil {
+                return 250.0
+            } else {
+                return 150.0
+            }
+        }
+//        guard let twee = self.tweet?[indexPath.row] else { return UITableViewAutomaticDimension }
+//        if !twee.mediaImageURLs.isEmpty || twee.quote != nil {
+//            return 250.0
+//        } else {
+//            return 150.0
+//        }
+        
+//        if let height = heightAtIndexPath.object(forKey: indexPath) as? NSNumber {
+//            
+//            return CGFloat(height.floatValue)
+//        } else {
+//            return UITableViewAutomaticDimension
+//        }
+    }
+    
+    func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        let height = cell.frame.size.height
+        self.heightAtIndexPath[indexPath] = height
+        //print(height)
+        //heightAtIndexPath.setObject(height, forKey: indexPath as NSCopying)
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {

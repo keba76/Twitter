@@ -182,11 +182,11 @@ class ModelTweet {
             text.addAttribute(NSParagraphStyleAttributeName, value: style, range: NSRange(location: 0, length: text.string.characters.count))
         }
         
-        if parse.retweetTweetID != nil, parse.retweetBtn, parse.retweetedName != Profile.account.name{
+        if parse.retweetTweetID != nil, parse.retweetBtn, parse.retweetedName != Profile.account?.name{
             retweetedType = "Retweeted by \(parse.retweetedName!) and You"
         } else if parse.retweetTweetID != nil {
             
-            retweetedType = parse.retweetedName == Profile.account.name ? "Retweeted by You" : "Retweeted by \(parse.retweetedName!)"
+            retweetedType = parse.retweetedName == Profile.account?.name ? "Retweeted by You" : "Retweeted by \(parse.retweetedName!)"
         } else if parse.retweetBtn {
             retweetedType = "Retweeted by You"
         } else {

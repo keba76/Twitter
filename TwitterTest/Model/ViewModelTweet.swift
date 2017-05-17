@@ -58,11 +58,11 @@ class ViewModelTweet {
                 retweetCount.onNext(temp)
                 retweetBtn = false
             }
-            if retweetTweetID != nil, retweetBtn, retweetedName != Profile.account.name{
+            if retweetTweetID != nil, retweetBtn, retweetedName != Profile.account?.name{
                 retweetedType = "Retweeted by \(retweetedName) and You"
             } else if retweetTweetID != nil {
                 
-                retweetedType = retweetedName == Profile.account.name ? "Retweeted by You" : "Retweeted by \(retweetedName)"
+                retweetedType = retweetedName == Profile.account?.name ? "Retweeted by You" : "Retweeted by \(retweetedName)"
             } else if retweetBtn {
                 retweetedType = "Retweeted by You"
             } else {

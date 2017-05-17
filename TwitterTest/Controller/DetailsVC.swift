@@ -16,6 +16,8 @@
         var tweetChain = [ViewModelTweet]()
         var instanceDetail: TwitterClient?
         
+        
+        
         override func viewDidLoad() {
             super.viewDidLoad()
             
@@ -25,7 +27,7 @@
             tableView.delegate = self
             tableView.dataSource = self
             tableView.rowHeight = UITableViewAutomaticDimension
-            tableView.estimatedRowHeight = 270.0
+            tableView.estimatedRowHeight = 120.0
             
             tableView.tableFooterView = UIView()
             
@@ -45,6 +47,19 @@
                 self.tableView.insertRows(at: index, with: .top)
             })
         }
+        
+        //    func tableView(_ tableView: UITableView, estimatedHeightForRowAt indexPath: IndexPath) -> CGFloat {
+        //        if let height = heightAtIndexPath.object(forKey: indexPath) as? NSNumber {
+        //            return CGFloat(height.floatValue)
+        //        } else {
+        //            return UITableViewAutomaticDimension
+        //        }
+        //    }
+        
+        //    func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        //        let height = NSNumber(value: Float(cell.frame.size.height))
+        //        heightAtIndexPath.setObject(height, forKey: indexPath as NSCopying)
+        //    }
         
         func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
             return tweetChain.count > 0 ? tweetChain.count : 1
@@ -76,6 +91,7 @@
                     cells = cell
                 }
             }
+            cells.layoutIfNeeded()
             return cells
         }
         

@@ -49,7 +49,7 @@ class Tweet {
             self.retweeted = dict["retweeted_status"]["retweeted"].bool ?? false
             self.favorited = dict["retweeted_status"]["favorited"].bool ?? false
             self.retweetTweetID = dict["retweeted_status"]["id_str"].string
-            if self.retweetedName == Profile.account.name {
+            if self.retweetedName == Profile.account?.name {
                 retweetBtn = true
             }
             tweetParseDetails(some: dict["retweeted_status"])
