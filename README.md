@@ -15,4 +15,4 @@
 Приятного использования:)
 
 p.s. тестовый твиттер аккаунт:
-login: @tweeAppTest    password: twitterapp
+login: @tweeAppTest    password: twitterapp
