@@ -83,9 +83,6 @@ class ReplyAndNewTweetVC: UIViewController, UITextViewDelegate {
     var convert: CGRect?
     var convertFinal = false
     
-    //var delegate: ModallyDelegate?
-    //var reply = false
-    
     var user = Set<String>()
     
     var userReply: ViewModelTweet?
@@ -175,11 +172,12 @@ class ReplyAndNewTweetVC: UIViewController, UITextViewDelegate {
         
         btnClose.rx.tap.subscribe(onNext: {
             self.inputText.resignFirstResponder()
-            self.dismiss(animated: true, completion: {
-                self.userReply?.replyBtn.onNext(false)
-            })
+            self.userReply?.replyBtn.onNext(false)
+            Profile.reloadingProfileTweetsWhenReply -= 1
+            self.dismiss(animated: true, completion: nil)
         }).addDisposableTo(dis)
         btnTweet.rx.tap.subscribe(onNext: {
+            Profile.reloadingProfileTweetsWhenReply += 1
             self.inputText.resignFirstResponder()
             self.textViewHeightConstraint.constant = UIScreen.main.bounds.height - 48.0
             
@@ -216,7 +214,6 @@ class ReplyAndNewTweetVC: UIViewController, UITextViewDelegate {
                         })
                     })
                 }
-                
             }
             
         }).addDisposableTo(dis)
@@ -315,7 +312,6 @@ extension ReplyAndNewTweetVC: UICollectionViewDelegate, UICollectionViewDataSour
     }
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        
         return 2
     }
     
@@ -374,8 +370,6 @@ extension ReplyAndNewTweetVC: UIViewControllerTransitioningDelegate {
 
 extension ReplyAndNewTweetVC: ModallyDelegate {
     
-    
-    
     func modally(image: UIImage?, variety: VarietyModally?, helper: SomeTweetsData?) {
         self.image = image
         btnTweet?.isEnabled = self.image != nil ? true : false
@@ -394,7 +388,6 @@ extension ReplyAndNewTweetVC: ModallyDelegate {
                 imageScaleController.image = self.image
                 
                 present(imageScaleController, animated: true, completion: nil)
-                
             }
         }
     }

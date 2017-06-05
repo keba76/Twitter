@@ -29,11 +29,13 @@ class ImageLoadOperation: Operation {
             if image != nil, cache == .none {
                 let urlString = self.url.absoluteString
                 if urlString.contains("profile_images") {
+                    let w = image!.size.width
+                    let h = image!.size.height
+                    let size = w/h > 0 ? CGSize(width: 200.0, height: 200/(w/h)) : CGSize(width: 200.0, height: 200 * (w/h))
                     DispatchQueue.global(qos: .userInitiated).async {
-                        let tempImage = image?.imageWithImage(image: image!, scaledToSize: CGSize(width: 75.0, height: 75.0))
+                        let tempImage = image?.imageWithImage(image: image!, scaledToSize: size)
                         SDWebImageManager.shared().saveImage(toCache: tempImage, for: self.url)
                         DispatchQueue.main.async {
-                            
                             guard !self.isCancelled, let image = image else { return }
                             self.image = image
                             self.completionHandler?(image)

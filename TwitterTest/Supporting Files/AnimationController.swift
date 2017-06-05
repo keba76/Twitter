@@ -24,6 +24,7 @@ class AnimationController: NSObject, UIViewControllerAnimatedTransitioning {
     private var frameImage: CGRect?
     private var frameBackImage: CGRect?
     private var secondImage: UIImage?
+    private var cornerRadius = true
     
     static var screenViewNav: UIView?
     static var screenViewTab: UIView?
@@ -35,6 +36,7 @@ class AnimationController: NSObject, UIViewControllerAnimatedTransitioning {
         self.fromDelegate = fromDelegate
         self.toDelegate = toDelegate
         self.alphaTabs = alphaTabs
+        self.cornerRadius = data.cornerRadius
         if let frameImage = data.frameImage, data.frameBackImage != CGRect.zero {
             self.frameImage = frameImage
             self.frameBackImage = data.frameBackImage
@@ -79,7 +81,7 @@ class AnimationController: NSObject, UIViewControllerAnimatedTransitioning {
         let imageView = UIImageView(image: image)
         imageView.contentMode = .scaleAspectFill
         imageView.frame = (fromDelegate == nil) ? CGRect.zero : fromDelegate!.imageWindowFrame()
-        imageView.layer.cornerRadius = 5.0
+        if cornerRadius { imageView.layer.cornerRadius = 5.0 }
         imageView.clipsToBounds = true
         containerView.addSubview(imageView)
         
@@ -176,9 +178,7 @@ class AnimationController: NSObject, UIViewControllerAnimatedTransitioning {
                 containerView.addSubview(toVC.view)
             }
             transitionContext.completeTransition(!transitionContext.transitionWasCancelled)
-            
         }
-        
     }
 }
 

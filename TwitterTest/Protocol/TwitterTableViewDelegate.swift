@@ -9,13 +9,13 @@
 import UIKit
 
 protocol TwitterTableViewDelegate: UITableViewDelegate {
-    func profileVC(tweet: ViewModelTweet?, user: ModelUser?, users: ModelUser?, someTweetsData: SomeTweetsData?, settings: Bool, scaleAvatarImage: Bool)
+    func profileVC(tweet: ViewModelTweet?, someTweetsData: SomeTweetsData?)
 }
 extension TwitterTableViewDelegate {
     
-    func extensionProfVC(tweet: ViewModelTweet? = nil, user: ModelUser? = nil, users: ModelUser? = nil, someTweetsData: SomeTweetsData? = nil, settings: Bool = false, scaleAvatarImage: Bool = false) {
+    func extensionProfVC(tweet: ViewModelTweet? = nil, someTweetsData: SomeTweetsData? = nil) {
         
-        profileVC(tweet: tweet, user: user, users: users, someTweetsData: someTweetsData, settings: settings, scaleAvatarImage: scaleAvatarImage)
+        profileVC(tweet: tweet, someTweetsData: someTweetsData)
     }
 }
 

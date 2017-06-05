@@ -16,9 +16,6 @@ class PhotoScaleVC: UIViewController {
     
     var image: UIImage?
     
-    //    override func viewWillAppear(_ animated: Bool) {
-    //        super.viewWillAppear(animated)
-    //        self.imageScale.image = image
     override func viewDidLoad() {
         let imageView = UIImageView(image: image)
         imageView.contentMode = .scaleAspectFill

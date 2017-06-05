@@ -16,7 +16,5 @@ extension Reusable {
         return String(describing: Self.self)
     }
 }
-extension UITableViewCell: Reusable {
-    
-}
+extension UITableViewCell: Reusable {}
 

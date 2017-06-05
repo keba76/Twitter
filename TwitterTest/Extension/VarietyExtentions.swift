@@ -15,13 +15,86 @@ extension String {
         
         return self.replacingOccurrences(of: target, with: withString, options: CompareOptions.literal, range: nil)
     }
+    
+    
+    func substringBetween(from: Int?, to: Int?) -> String {
+        let startIndex: String.Index
+        if let start = from, start >= 0 {
+            startIndex = self.index(self.startIndex, offsetBy: start + 1)
+        } else { startIndex = self.startIndex }
+        
+        let endIndex: String.Index
+        if let end = to, end >= 0, end < self.characters.count {
+            endIndex = self.index(self.startIndex, offsetBy: end)
+        } else { endIndex = self.endIndex }
+        
+        return self[startIndex ..< endIndex]
+    }
 }
 
 extension NSObject {
     func imageWithImage(image:UIImage, scaledToSize newSize:CGSize) -> UIImage{
         UIGraphicsBeginImageContextWithOptions(newSize, true, 0.0);
+        //let context = UIGraphicsGetCurrentContext()
         image.draw(in: CGRect(origin: CGPoint.zero, size: CGSize(width: newSize.width, height: newSize.height)))
         let newImage:UIImage = UIGraphicsGetImageFromCurrentImageContext()!
+        UIGraphicsEndImageContext()
+        return newImage
+    }
+    
+    func imageWithCornerRadiusAndBorder(image: UIImage, scaledToSize newSize:CGSize, cornerRadius: CGFloat) -> UIImage {
+        UIGraphicsBeginImageContextWithOptions(newSize, false, 0.0)
+        let path = UIBezierPath(roundedRect: CGRect(origin: CGPoint.zero, size: CGSize(width: newSize.width, height: newSize.height)), cornerRadius: cornerRadius)
+        let context = UIGraphicsGetCurrentContext()
+        context?.saveGState()
+        //  context?.beginPath()
+        // context?.addPath(path.cgPath)
+        //context?.closePath()
+        
+        path.addClip()
+        image.draw(in: CGRect(origin: CGPoint.zero, size: CGSize(width: newSize.width, height: newSize.height)))
+        context?.restoreGState()
+        UIColor.black.setStroke()
+        path.lineWidth = 0.6
+        path.stroke()
+        let newImage: UIImage = UIGraphicsGetImageFromCurrentImageContext()!
+        
+        UIGraphicsEndImageContext()
+        return newImage
+    }
+    
+    func imageWithCornerRadius(image: UIImage, scaledToSize newSize:CGSize, cornerRadius: CGFloat) -> UIImage {
+        let aspect = image.size.width / image.size.height
+        UIGraphicsBeginImageContextWithOptions(newSize, false, 0.0)
+        
+        let context = UIGraphicsGetCurrentContext()
+        context?.saveGState()
+        let path = UIBezierPath(roundedRect: CGRect(origin: CGPoint.zero, size: CGSize(width: newSize.width, height: newSize.height)), cornerRadius: cornerRadius)
+        context?.beginPath()
+        context?.addPath(path.cgPath)
+        context?.closePath()
+        let rect: CGRect
+        if newSize.width / aspect > newSize.height {
+            let height = newSize.width / aspect
+            rect = CGRect(x: 0, y: (newSize.height - height) / 2,
+                          width: newSize.width, height: height)
+        } else {
+            let width = newSize.height * aspect
+            rect = CGRect(x: (newSize.width - width) / 2, y: 0,
+                          width: width, height: newSize.height)
+        }
+        path.addClip()
+        image.draw(in: rect)
+        
+        //  context?.beginPath()
+        // context?.addPath(path.cgPath)
+        //context?.closePath()
+        
+        //        path.addClip()
+        //        image.draw(in: CGRect(origin: CGPoint.zero, size: CGSize(width: newSize.width, height: newSize.height)))
+        context?.restoreGState()
+        let newImage: UIImage = UIGraphicsGetImageFromCurrentImageContext()!
+        
         UIGraphicsEndImageContext()
         return newImage
     }
@@ -125,25 +198,25 @@ extension Array where Element:Hashable {
         return (result)
     }
     
-        /**
-         Returns only the unique elements of an Array, in the order they appear in the Array
-         
-         - note: Items have to be hashable
-         */
-        var uniqueElements: Array<Element> {
-            //Using a dictionary because it's faster to look up items in a dictionary than to
-            //search trough an array. In other words, array.contans(item:) is O(n) complexity
-            var seen: [Element: Bool] = [:]
-            
-            return self.flatMap { element in
-                guard seen[element] == nil else {
-                    return nil
-                }
-                seen[element] = true
-                return element
+    /**
+     Returns only the unique elements of an Array, in the order they appear in the Array
+     
+     - note: Items have to be hashable
+     */
+    var uniqueElements: Array<Element> {
+        //Using a dictionary because it's faster to look up items in a dictionary than to
+        //search trough an array. In other words, array.contans(item:) is O(n) complexity
+        var seen: [Element: Bool] = [:]
+        
+        return self.flatMap { element in
+            guard seen[element] == nil else {
+                return nil
             }
+            seen[element] = true
+            return element
         }
     }
+}
 
 
 
@@ -243,35 +316,28 @@ extension UIView
 extension UIImage {
     func forceLazyImageDecompression() -> UIImage {
         
-            UIGraphicsBeginImageContext(CGSize(width: 1, height: 1))
-            self.draw(at: CGPoint.zero)
-            UIGraphicsEndImageContext()
+        UIGraphicsBeginImageContext(CGSize(width: 1, height: 1))
+        self.draw(at: CGPoint.zero)
+        UIGraphicsEndImageContext()
         return self
     }
-
-
-class func getEmptyImageWithColor(color: UIColor) -> UIImage
-{
-    let rect = CGRect(origin: CGPoint(x: 0, y: 0), size: CGSize(width: 1, height: 1))
-    UIGraphicsBeginImageContextWithOptions(CGSize(width: 1, height: 1), true, 0)
-    color.setFill()
-    UIRectFill(rect)
-    let image: UIImage = UIGraphicsGetImageFromCurrentImageContext()!
-    UIGraphicsEndImageContext()
-    return image
-}
+    
+    
+    class func getEmptyImageWithColor(color: UIColor) -> UIImage
+    {
+        let rect = CGRect(origin: CGPoint(x: 0, y: 0), size: CGSize(width: 1, height: 1))
+        UIGraphicsBeginImageContextWithOptions(CGSize(width: 1, height: 1), true, 0)
+        color.setFill()
+        UIRectFill(rect)
+        let image: UIImage = UIGraphicsGetImageFromCurrentImageContext()!
+        UIGraphicsEndImageContext()
+        return image
+    }
 }
 
 extension UITapGestureRecognizer {
     
     func didTapAttributedTextInLabel(label: UILabel, inRange targetRange: NSRange) -> Bool {
-        // Create instances of NSLayoutManager, NSTextContainer and NSTextStorage
-        //        var sizeOfString = CGSize()
-        //        let font = UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightRegular)
-        //
-        //            let finalDate = "..."
-        //            let fontAttributes = [NSFontAttributeName: font] // it says name, but a UIFont works
-        //            sizeOfString = (finalDate as NSString).size(attributes: fontAttributes)
         
         let layoutManager = NSLayoutManager()
         let textContainer = NSTextContainer(size: CGSize.zero)
@@ -285,38 +351,22 @@ extension UITapGestureRecognizer {
         textContainer.lineFragmentPadding = 0.0
         textContainer.lineBreakMode = label.lineBreakMode
         textContainer.maximumNumberOfLines = label.numberOfLines
+        textContainer.size = label.bounds.size
         
-        let labelSize = label.bounds.size
-        textContainer.size = labelSize
-        
-        
-        // Find the tapped character location and compare it to the specified range
+        // main code
         let locationOfTouchInLabel = self.location(in: label)
         
-        
-        let lastRange = NSRange(location: targetRange.location + targetRange.length - 1, length: 1)
-        
-        let lastPoint = layoutManager.boundingRect(forGlyphRange: lastRange, in: textContainer)
-        
-        
-        // let y = layoutManager.boundingRect(forGlyphRange: targetRange, in: textContainer)
-        
-        //let textBoundingBox = layoutManager.usedRect(for: textContainer)
-        
-        
         let indexOfCharacter = layoutManager.characterIndex(for: locationOfTouchInLabel, in: textContainer, fractionOfDistanceBetweenInsertionPoints: nil)
+        let indexOfCharacterRange = NSRange(location: indexOfCharacter, length: 1)
+        let indexOfCharacterRect = layoutManager.boundingRect(forGlyphRange: indexOfCharacterRange, in: textContainer)
+        let deltaOffsetCharacter = indexOfCharacterRect.origin.x + indexOfCharacterRect.size.width
         
-        if indexOfCharacter == layoutManager.characterIndex(for: CGPoint(x: locationOfTouchInLabel.x + 8.0, y: locationOfTouchInLabel.y) , in: textContainer, fractionOfDistanceBetweenInsertionPoints: nil) {
+        if locationOfTouchInLabel.x > deltaOffsetCharacter {
             return false
-        }
-        
-        if locationOfTouchInLabel.y < lastPoint.origin.y || locationOfTouchInLabel.y >= lastPoint.origin.y && locationOfTouchInLabel.x  <= lastPoint.origin.x + lastPoint.width {
+        } else {
             return NSLocationInRange(indexOfCharacter, targetRange)
-        } else { return false }
-        
-        
+        }
     }
-    
 }
 
 extension UIView {
@@ -342,3 +392,12 @@ extension UIView {
         self.layer.mask = maskLayer
     }
 }
+
+//extension UIColor {
+//    func getImage(size: CGSize) -> UIImage {
+//        let renderer = UIGraphicsImageRenderer(size: size)
+//        return renderer.image(actions: { rendererContext in
+//            self.setFill()
+//            rendererContext.fill(CGRect(x: 0, y: 0, width: size.width, height: size.height))
+//        })
+//    }}

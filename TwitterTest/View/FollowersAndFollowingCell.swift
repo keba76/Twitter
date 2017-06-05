@@ -35,7 +35,8 @@ class FollowersAndFollowingCell: UITableViewCell {
         
         userPic.layer.cornerRadius = 5
         userPic.clipsToBounds = true
-        userPicBack.layer.cornerRadius = 5
+        userPic.layer.borderColor = UIColor.darkGray.cgColor
+        userPic.layer.borderWidth = 0.5
         
         userName.text = user.name
         followersCount.text = user.followers

@@ -68,17 +68,28 @@
         }
         let screenName = tweetOrigin.userScreenName
         let tweeID = tweetOrigin.retweetTweetID != nil ? tweetOrigin.retweetTweetID : tweetOrigin.tweetID
-        //let tweeID = tweetOrigin.tweetID
-        
         var tweets = [ViewModelTweet]()
-        TwitterClient.swifter.searchTweet(using: "to:@\(screenName)",count: 50,  sinceID: tweeID, success: { (json, jsons) in
+        TwitterClient.swifter.searchTweet(using: "to:@\(screenName)",count: 100,  sinceID: tweeID, success: { (json, jsons) in
             guard let twee = json.array else { return }
             twee.forEach({ json in
                 if json["in_reply_to_status_id_str"].string == tweeID {
-                    
-                    tweets.append(ViewModelTweet(modelTweet: ModelTweet(parse: Tweet(dict: json))))
+                   // print(json)
+                    let tweetTemp = ViewModelTweet(modelTweet: ModelTweet(parse: Tweet(dict: json)))
+                    for x in DetailsVC.tweetIDforDetailsVC {
+                        if x.0 == tweetTemp.tweetID {
+                            if x.1 {
+                                tweetTemp.retweetedType = "Retweeted by You"
+                                tweetTemp.retweetBtn.onNext(true)
+                            }
+                            if x.2 {
+                                tweetTemp.favoriteBtn.onNext(true)
+                            }
+                        }
+                    }
+                    tweets.append(tweetTemp)
                 }
             })
+            
             complited(tweets)
         }, failure: failureHandler)
     }
@@ -101,7 +112,7 @@
                 guard let users = json.array else { return }
                 var tempUsser = [ModelUser]()
                 users.forEach {tempUsser.append(ModelUser(parse: User(dict: $0)))}
-                print(tempUsser)
+                //print(tempUsser)
                 complited(tempUsser, nextCursor)
             }, failure: failureHandler)
         }

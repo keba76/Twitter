@@ -10,7 +10,8 @@ import Foundation
 
 class Tweet {
     
-    var tweetID: String
+    var tweetID = ""
+    var lastTweetID = ""
     var timeStamp: String?
     var retweetCount = 0
     var retweeted: Bool
@@ -32,12 +33,14 @@ class Tweet {
     var favoriteBtn = false
     var replyBtn = false
     var quote: Tweet?
+    var via: String?
+    var followingStatus = false
     
     
     init(dict: JSON) {
         //print(dict)
         
-        self.tweetID = dict["id_str"].string ?? ""
+        lastTweetID = dict["id_str"].string!
         if let retweetName = dict["user"]["name"].string {
             self.retweetedName = retweetName
         }
@@ -59,10 +62,10 @@ class Tweet {
             self.favorited = dict["favorited"].bool ?? false
             tweetParseDetails(some: dict)
         }
-        
     }
     private func tweetParseDetails(some: JSON) {
-        
+        self.followingStatus = some["user"]["following"].bool!
+        self.tweetID = some["id_str"].string!
         self.favoriteBtn = some["favorited"].bool!
         self.username = some["user"]["name"].string
         self.userScreenName = some["user"]["screen_name"].string
@@ -83,6 +86,8 @@ class Tweet {
         self.user = some["user"]
         self.retweetCount = some["retweet_count"].integer ?? 0
         self.favoriteCount = some["favorite_count"].integer ?? 0
+        
+        self.via = some["source"].string
         
         let timeSt = some["created_at"].string
         let formatter = DateFormatter()

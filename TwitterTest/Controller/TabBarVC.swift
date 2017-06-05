@@ -17,7 +17,7 @@ enum TabBars: String {
 
 class TabBarVC: UITabBarController, UITabBarControllerDelegate {
     
-    static var tab: TabBars?
+    static var tab:TabBars? = TabBars(rawValue: "homeVC")
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -25,22 +25,18 @@ class TabBarVC: UITabBarController, UITabBarControllerDelegate {
     }
     
     override func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
-        if self.selectedIndex == 0 {
-            TabBarVC.tab = TabBars(rawValue: "profileVC")
-        } else if self.selectedIndex == 1 {
+        if item == tabBar.items?[0] {
             TabBarVC.tab = TabBars(rawValue: "homeVC")
+        } else if item == tabBar.items?[1] {
+            TabBarVC.tab = TabBars(rawValue: "profileVC")
         }
     }
     
     func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {
         if tabBarController.selectedIndex == 1 {
-            if let x = viewController as? UINavigationController {
-                let controller = self.storyboard?.instantiateViewController(withIdentifier: "ProfileVC") as! ProfileVC
-                x.viewControllers.removeAll()
-                x.viewControllers.append(controller)
-                Profile.account?.userData = Variable<UserData>(UserData.tempValue(action: false))
+            if let x = viewController as? UINavigationController, let controller = x.viewControllers.first as? ProfileVC {
+                print(x.viewControllers.first!)
                 controller.user = Profile.account
-                x.popToRootViewController(animated: true)
             }
         }
     }

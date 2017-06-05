@@ -99,14 +99,15 @@ class SplashVC: UIViewController, SegueHandlerType {
         TwitterClient.swifter.verifyAccountCredentials(includeEntities: false, skipStatus: true, success: { json in
             let user = ModelUser(parse: User(dict: json))
             Profile.account = user
+    
             TwitterClient.swifter.getUserFollowersIDs(for: .id(user.id), count: 5000, success: { (json, _ , nextCursor) in
                 Profile.arrayIdFollowers = json.array ?? []
             }, failure: { error in
                 print(error.localizedDescription)})
         }, failure: { error in print(error.localizedDescription)})
         
-        TwitterClient.swifter.getHomeTimeline(count: 20, maxID: nil, success: { json in
-            //print(json)
+        TwitterClient.swifter.getHomeTimeline(count: 30, maxID: nil, success: { json in
+          // print(json)
             guard let twee = json.array else { return }
             let viewModel =  twee
                 .map {Tweet(dict: $0)}

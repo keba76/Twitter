@@ -10,6 +10,7 @@ import UIKit
 import RxSwift
 import RxCocoa
 import SDWebImage
+import SafariServices
 
 class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, UIScrollViewDelegate, SegueHandlerType {
     
@@ -17,6 +18,7 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
         case DetailsVCText
         case DetailsVCMedia
         case ProfilePageVC
+        case DetailsVCQuote
     }
     
     var tableHeaderHeight: CGFloat = 350.0
@@ -35,6 +37,8 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
     var dis = DisposeBag()
     var instance: TwitterClient?
     
+    var heightCell = Array<CGFloat>()
+    
     var loadingMoreTweets: NVActivityIndicatorView?
     var loadingView: UIView?
     var stopOffset = false
@@ -52,31 +56,31 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
     var lastTweetID: String?
     var tweet: [ViewModelTweet]? {
         didSet {
-            lastTweetID = tweet?.last?.tweetID
+            lastTweetID = tweet?.last?.lastTweetID
         }
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
         instance = TwitterClient()
         
-        if #available(iOS 10.0, *) {
-            tableView.prefetchDataSource = self
-        }
         
-        tableView.register(UINib(nibName: "QuoteCell", bundle: Bundle.main) , forCellReuseIdentifier: "quoteCompact")
+        if #available(iOS 10.0, *) { tableView.prefetchDataSource = self }
         
         tableView.delegate = self
         tableView.dataSource = self
-        tableView.rowHeight = UITableViewAutomaticDimension
-        tableView.estimatedRowHeight = 270.0
         tableView.tableFooterView = UIView()
+        
+        if TabBarVC.tab == .profileVC, self.navigationController?.viewControllers.count == 1 {
+            Profile.reloadingProfileTweetsWhenRetweet = 0
+            Profile.reloadingProfileTweetsWhenReply = 0
+        }
         
         headerView = tableView.tableHeaderView as! ProfileHeader
         tableView.tableHeaderView = nil
         tableView.addSubview(headerView)
         tableView.contentInset = UIEdgeInsets(top: tableHeaderHeight - 64.0, left: 0, bottom: 0, right: 0)
-        //tableView.contentOffset = CGPoint(x: 0.0, y: -(tableHeaderHeight + 64))
         
         headerView.frame = CGRect(x: 0, y: -(tableHeaderHeight), width: tableView.bounds.width, height: tableHeaderHeight)
         self.headerView.user = user
@@ -84,8 +88,6 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
         self.user?.userData.asObservable().subscribe(onNext: { [weak self] data in
             guard let s = self else { return }
             s.varietyUserAction(data: data)
-            }, onCompleted: {
-                print("!!!")
         }).addDisposableTo(dis)
         
         let rectProgress = CGRect(x: view.bounds.width/2 - 20.0, y: (view.bounds.height + tableView.contentInset.top + 64.0)/2 - 20.0, width: 40.0, height: 40.0)
@@ -107,9 +109,152 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
             self.reloadData()
         }
         
-        var inset = tableView.contentInset
-        inset.bottom += 60.0
-        tableView.contentInset = inset
+        tableView.contentInset.bottom += 60.0
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        if self.navigationController?.viewControllers.count == 1 {
+            
+            Profile.markerForReset = true
+            Profile.profileAccount = true
+            guard let twee = self.tweet else { return }
+            DispatchQueue.global().async {
+                for tweeTemp in twee {
+                    if let id = Profile.tweetIDForFavorite[tweeTemp.tweetID] {
+                        if !id, try! tweeTemp.favoriteBtn.value() {
+                            tweeTemp.favoriteBtn.onNext(false)
+                            let temp = try! tweeTemp.favoriteCount.value() - 1
+                            tweeTemp.favoriteCount.onNext(temp)
+                        } else if id, try! !tweeTemp.favoriteBtn.value() {
+                            tweeTemp.favoriteBtn.onNext(true)
+                            let temp = try! tweeTemp.favoriteCount.value() + 1
+                            tweeTemp.favoriteCount.onNext(temp)
+                        }
+                    }
+                }
+            }
+            if Profile.reloadingProfileTweetsWhenRetweet != 0 || Profile.reloadingProfileTweetsWhenReply != 0 {
+                
+                self.tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: false)
+                viewHelp = UIView(frame: CGRect(x: 0.0, y: self.tableHeaderHeight, width: view.bounds.width, height: view.bounds.height))
+                viewHelp?.backgroundColor = UIColor.groupTableViewBackground
+                self.view.addSubview(viewHelp!)
+                self.view.bringSubview(toFront: viewHelp!)
+                
+                let rectProgress = CGRect(x: view.bounds.width/2 - 20.0, y: (self.tableHeaderHeight + (view.bounds.height - self.tableHeaderHeight)/2) - 20.0, width: 40.0, height: 40.0)
+                viewProgress = NVActivityIndicatorView(frame: rectProgress, type: .lineScalePulseOut, color: UIColor(red: 255/255, green: 0/255, blue: 104/255, alpha: 1), padding: 0)
+                self.view.addSubview(self.viewProgress!)
+                self.view.bringSubview(toFront: self.viewProgress!)
+                self.viewProgress?.startAnimating()
+                self.lastTweetID = nil
+                instance?.userTimeLine(id: (user?.id)!, maxID: lastTweetID) { (data) in
+                    self.viewProgress?.stopAnimating()
+                    self.viewProgress?.removeFromSuperview()
+                    self.viewProgress = nil
+                    UIView.animate(withDuration: 0.5, animations: {
+                        self.viewHelp?.alpha = 0.0
+                    }, completion: { finish in
+                        self.viewHelp?.removeFromSuperview()
+                        self.viewHelp = nil
+                    })
+                    var uniqueTemp = [ViewModelTweet]()
+                    for value in data {
+                        if twee.contains(value) { break }
+                        value.cellData.asObservable().subscribe(onNext: { [weak self] data in
+                            guard let s = self else { return }
+                            s.varietyCellAction(data: data)
+                        }).addDisposableTo(self.dis)
+                        uniqueTemp.append(value)
+                    }
+                    
+                    self.imageLoadOperations.forEach {$0.value.cancel()}
+                    self.imageLoadOperationsMedia.forEach {$0.value.cancel()}
+                    self.imageLoadOperations = [IndexPath: ImageLoadOperation]()
+                    self.imageLoadOperationsMedia = [IndexPath: ImageLoadOperation]()
+                    Profile.reloadingProfileTweetsWhenRetweet = 0
+                    Profile.reloadingProfileTweetsWhenReply = 0
+                    
+                    if uniqueTemp.count == 0 {
+                        var delta = 0
+                        for value in twee {
+                            if data.contains(value) { break }
+                            delta += 1
+                        }
+                        var indexPathDelta = [IndexPath]()
+                        while delta != 0 {
+                            let index = IndexPath(item: delta - 1, section: 0)
+                            indexPathDelta.insert(index, at: 0)
+                            
+                            self.heightCell.remove(at: delta - 1)
+                            self.tweet?.remove(at: delta - 1)
+                            delta -= 1
+                        }
+                        let section = IndexSet(integer: 0)
+                        self.tableView.reloadSections(section, with: .bottom)
+                    } else {
+                        self.tweet?.insert(contentsOf: uniqueTemp, at: 0)
+                        
+                        var indexRefresh = [IndexPath]()
+                        var seed = uniqueTemp.count
+                        while seed != 0 {
+                            indexRefresh.insert(IndexPath(item: seed - 1, section: 0), at: 0)
+                            self.heightCell.insert(0.0, at: 0)
+                            seed -= 1
+                        }
+                        self.tableView.beginUpdates()
+                        self.tableView.insertRows(at: indexRefresh, with: .top)
+                        self.tableView.endUpdates()
+                        self.tableView.reloadData()
+                    }
+                }
+            }
+        } else {
+            Profile.profileAccount = false
+            Profile.markerForReset = false
+            guard let twee = self.tweet else { return }
+            DispatchQueue.global().async {
+                for (index, tweeTemp) in twee.enumerated() {
+                    if let id = Profile.tweetID[tweeTemp.tweetID] {
+                        if !id, try! tweeTemp.retweetBtn.value() {
+                            tweeTemp.retweetBtn.onNext(false)
+                            let temp = try! tweeTemp.retweetCount.value() - 1
+                            tweeTemp.retweetCount.onNext(temp)
+                            if tweeTemp.retweetedType == "Retweeted by \(tweeTemp.retweetedName) and You" {
+                                tweeTemp.retweetedType = "Retweeted by \(tweeTemp.retweetedName)"
+                            } else {
+                                self.heightCell[index] = self.heightCell[index] - 12.0
+                                tweeTemp.retweetedType = ""
+                            }
+                        } else if id, try! !tweeTemp.retweetBtn.value() {
+                            tweeTemp.retweetBtn.onNext(true)
+                            let temp = try! tweeTemp.retweetCount.value() + 1
+                            tweeTemp.retweetCount.onNext(temp)
+                            if tweeTemp.retweetedType == "Retweeted by \(tweeTemp.retweetedName)" {
+                                tweeTemp.retweetedType = "Retweeted by \(tweeTemp.retweetedName) and You"
+                            } else {
+                                self.heightCell[index] = self.heightCell[index] + 12.0
+                                tweeTemp.retweetedType = "Retweeted by You"
+                            }
+                        }
+                    }
+                    if let id = Profile.tweetIDForFavorite[tweeTemp.tweetID] {
+                        if !id, try! tweeTemp.favoriteBtn.value() {
+                            tweeTemp.favoriteBtn.onNext(false)
+                            let temp = try! tweeTemp.favoriteCount.value() - 1
+                            tweeTemp.favoriteCount.onNext(temp)
+                        } else if id, try! !tweeTemp.favoriteBtn.value() {
+                            tweeTemp.favoriteBtn.onNext(true)
+                            let temp = try! tweeTemp.favoriteCount.value() + 1
+                            tweeTemp.favoriteCount.onNext(temp)
+                        }
+                    }
+                    
+                }
+                DispatchQueue.main.async { self.tableView.reloadData() }
+            }
+        }
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -117,80 +262,12 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
         if dataMediaScale != nil { dataMediaScale = nil }
     }
     
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        if self.navigationController?.viewControllers.count == 1 {
-            Profile.profileAccount = true
-            if Profile.reloadingProfileTweetsWhenRetweet != 0 {
-                self.tableView.contentOffset = CGPoint(x: 0, y: 0 - self.tableView.contentInset.top)
-                
-                viewHelp = UIView(frame: CGRect(x: 0.0, y: -self.tableView.contentOffset.y + 64.0, width: view.bounds.width, height: view.bounds.height))
-                viewHelp?.backgroundColor = UIColor.groupTableViewBackground
-                self.view.addSubview(viewHelp!)
-                self.view.bringSubview(toFront: viewHelp!)
-                
-                let rectProgress = CGRect(x: view.bounds.width/2 - 20.0, y: (view.bounds.height + tableView.contentInset.top + 64.0)/2 - 20.0, width: 40.0, height: 40.0)
-                viewProgress = NVActivityIndicatorView(frame: rectProgress, type: .lineScalePulseOut, color: UIColor(red: 255/255, green: 0/255, blue: 104/255, alpha: 1), padding: 0)
-                self.view.addSubview(self.viewProgress!)
-                self.view.bringSubview(toFront: self.viewProgress!)
-                self.viewProgress?.startAnimating()
-                self.lastTweetID = nil
-                instance?.userTimeLine(id: (user?.id)!, maxID: lastTweetID) { (data) in
-                    Profile.reloadingProfileTweetsWhenRetweet = 0
-                    self.viewProgress?.stopAnimating()
-                    self.viewProgress?.removeFromSuperview()
-                    self.viewProgress = nil
-                    UIView.animate(withDuration: 0.4, animations: {
-                        self.viewHelp?.alpha = 0.0
-                    }, completion: { finish in
-                        self.viewHelp?.removeFromSuperview()
-                        self.viewHelp = nil
-                    })
-                    
-                    var uniqueTemp = [ViewModelTweet]()
-                    if let tempTweet = self.tweet {
-                        for value in data {
-                            if tempTweet.contains(value) { break }
-                            value.cellData.asObservable().subscribe(onNext: { data in
-                                self.varietyCellAction(data: data)
-                            }).addDisposableTo(self.dis)
-                            uniqueTemp.insert(value, at: 0)
-                        }
-                    }
-                    self.tweet?.insert(contentsOf: uniqueTemp, at: 0)
-                    
-                    var indexRefresh = [IndexPath]()
-                    for (index, _ ) in uniqueTemp.enumerated() {
-                        indexRefresh.append(IndexPath(item: index, section: 0))
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: {
-                        self.imageLoadOperations.forEach {$0.value.cancel()}
-                        self.imageLoadOperationsMedia.forEach {$0.value.cancel()}
-                        self.imageLoadOperations = [IndexPath: ImageLoadOperation]()
-                        self.imageLoadOperationsMedia = [IndexPath: ImageLoadOperation]()
-                        self.tableView.beginUpdates()
-                        self.tableView.insertRows(at: indexRefresh, with: .top)
-                        self.tableView.endUpdates()
-                    })
-                }
-            }
-        } else {
-            Profile.profileAccount = false
-        }
-    }
-    
-    //            override func viewWillDisappear(_ animated: Bool) {
-    //                super.viewWillDisappear(animated)
-    //                    if self.user == Profile.account {} else {
-    //                self.user?.userData = Variable<UserData>(UserData.tempValue(action: false))
-    //
-    //                }
-    //            }
-    
     func reloadData(append: Bool = false) {
         
         instance?.userTimeLine(id: (user?.id)!, maxID: lastTweetID) { (data) in
+            
             if append {
+                
                 if data.isEmpty {
                     self.stopOffset = true
                     self.loadingMoreTweets?.stopAnimating()
@@ -202,33 +279,30 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                     return
                 }
                 for x in data {
-                    x.cellData.asObservable().subscribe(onNext: { data in
-                        self.varietyCellAction(data: data)
+                    x.cellData.asObservable().subscribe(onNext: { [weak self] data in
+                        guard let s = self else { return }
+                        s.varietyCellAction(data: data)
                     }).addDisposableTo(self.dis)
                 }
                 self.tweet?.append(contentsOf: data)
                 
                 if self.isMoreDataLoading.finish {
                     self.isMoreDataLoading = (start: false, finish: true, download: false)
-                    let pointOffSetY = self.tableView.contentSize.height - self.tableView.bounds.height - 50.0
+                    let pointOffSetY = self.tableView.contentSize.height - self.tableView.bounds.height
+                    self.loadingMoreTweets?.stopAnimating()
+                    self.loadingMoreTweets?.removeFromSuperview()
+                    self.loadingView?.removeFromSuperview()
+                    self.loadingMoreTweets = nil
+                    self.loadingView = nil
                     self.tableView.setContentOffset(CGPoint(x: 0.0, y: pointOffSetY), animated: true)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: {
-                        self.loadingMoreTweets?.stopAnimating()
-                        self.loadingMoreTweets?.removeFromSuperview()
-                        self.loadingView?.removeFromSuperview()
-                        self.loadingMoreTweets = nil
-                        self.loadingView = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: {
                         self.tableView.reloadData()
-                    })
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4, execute: {
-                        
-                        self.tableView.setContentOffset(CGPoint(x: 0.0, y: pointOffSetY + (self.tableView.contentOffset.y - pointOffSetY) + 150.0), animated: true)
+                        self.tableView.setContentOffset(CGPoint(x: 0.0, y: pointOffSetY + (self.tableView.contentOffset.y - pointOffSetY) + 100.0), animated: true)
                         self.isMoreDataLoading.finish = false
                     })
                 } else if !self.isMoreDataLoading.finish {
                     self.isMoreDataLoading.download = true
                 }
-                
             } else {
                 self.viewProgress?.stopAnimating()
                 self.viewProgress?.removeFromSuperview()
@@ -236,8 +310,9 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                 if self.tweet == nil {
                     self.tweet = data
                     for x in self.tweet! {
-                        x.cellData.asObservable().shareReplay(0).subscribe(onNext: { data in
-                            self.varietyCellAction(data: data)
+                        x.cellData.asObservable().subscribe(onNext: { [weak self] data in
+                            guard let s = self else { return }
+                            s.varietyCellAction(data: data)
                         }).addDisposableTo(self.dis)
                     }
                 }
@@ -250,19 +325,35 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
     
     func varietyCellAction(data: CellData) {
         switch data {
-        case let .Retweet(index, convert):
+        case let .Retweet(index):
             print(data)
+            guard let twee = self.tweet else { return }
             if TabBarVC.tab == .profileVC, self.navigationController?.viewControllers.count == 1 {
-                let indexTemp = self.tableView.indexPathForRow(at: convert)
+                
+                Profile.reloadingProfileTweetsWhenRetweet = 0
+                
+                
+                self.imageLoadOperations.forEach {$0.value.cancel()}
+                self.imageLoadOperationsMedia.forEach {$0.value.cancel()}
+                self.imageLoadOperations = [IndexPath: ImageLoadOperation]()
+                self.imageLoadOperationsMedia = [IndexPath: ImageLoadOperation]()
+                
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: {
                     self.tableView.beginUpdates()
-                    self.tweet?.remove(at: (indexTemp?.row)!)
-                    self.tableView.deleteRows(at: [indexTemp!], with: .none)
-                    self.imageLoadOperations[indexTemp!]?.cancel()
-                    self.imageLoadOperations.removeValue(forKey: indexTemp!)
+                    self.tweet?.remove(at: index.row)
+                    self.heightCell.remove(at: index.row)
+                    self.tableView.deleteRows(at: [index], with: .bottom)
                     self.tableView.endUpdates()
                 })
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.7, execute: {
+                    self.tableView.reloadData()
+                })
             } else {
+                if twee[index.row].retweetedType == "Retweeted by You" {
+                    heightCell[index.row] = heightCell[index.row] + 12.0
+                } else if twee[index.row].retweetedType == "" {
+                    heightCell[index.row] = heightCell[index.row] - 12.0
+                }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { self.tableView.reloadRows(at: [index], with: .none) }
             }
         case let .UserPicTap(tweet):
@@ -308,6 +399,26 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                     }
                 }
             }
+        case let .QuoteTap(tweet):
+            let controller = UIStoryboard(name: "Main", bundle: Bundle.main).instantiateViewController(withIdentifier: "DetailsVC") as! DetailsVC
+            customAttributeForDetailsVC(tweet: tweet, complete: { data in
+                controller.attributeText = data
+                controller.tweet = tweet
+            })
+            SDWebImageManager.shared().downloadImage(with: tweet.userAvatar, progress: { (_, _) in }, completed: { (image, error, cache, _, _) in tweet.userPicImage.onNext(image!)
+            })
+            if let url = tweet.mediaImageURLs.first {
+                SDWebImageManager.shared().downloadImage(with: url, progress: { (_, _) in }, completed: { (image, error, cache, _, _) in tweet.image.onNext(image!)
+                })
+            }
+            self.navigationController?.pushViewController(controller, animated: true)
+        case let .TextInvokeSelectRow(index):
+            self.tableView.selectRow(at: index, animated: true, scrollPosition: .none)
+            performSegue(withIdentifier: "DetailsVCText", sender: self.tableView.cellForRow(at: index))
+            self.tableView.deselectRow(at: index, animated: true)
+        case let .Safari(url):
+            let controller = SFSafariViewController(url: URL(string: url)!, entersReaderIfAvailable: true)
+            self.present(controller, animated: true, completion: nil)
             
         case let .MediaScale(index, convert):
             var frameCell = self.tableView.rectForRow(at: (index))
@@ -322,7 +433,6 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
             controllerPhotoScale.transitioningDelegate = self
             controllerPhotoScale.image = self.dataMediaScale?.image
             present(controllerPhotoScale, animated: true, completion: nil)
-            self.tableView.reloadData()
             print(data)
             
         default:
@@ -348,11 +458,16 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
             self.dataMediaScale?.frameBackImage = data.frameBackImage
             self.dataMediaScale?.frameImage = data.frameImage
             self.dataMediaScale?.secondImageForBanner = headerView.images
-            self.dataMediaScale?.image = headerView.imageBanner
+            self.dataMediaScale?.image = headerView.imageBanner == nil ?  UIImage.getEmptyImageWithColor(color: UIColor(red: 3/255, green: 169/255, blue: 244/255, alpha: 1)) : headerView.imageBanner
+            self.dataMediaScale?.cornerRadius = false
             Profile.shotView = false
             let controllerPhotoScale = UIStoryboard(name: "Main", bundle: Bundle.main).instantiateViewController(withIdentifier: "PhotoScaleVC") as! PhotoScaleVC
             controllerPhotoScale.transitioningDelegate = self
-            controllerPhotoScale.image = headerView.imageBanner
+            if headerView.imageBanner == nil {
+                controllerPhotoScale.image = UIImage.getEmptyImageWithColor(color: UIColor(red: 3/255, green: 169/255, blue: 244/255, alpha: 1))
+            } else {
+                controllerPhotoScale.image = headerView.imageBanner
+            }
             present(controllerPhotoScale, animated: true, completion: nil)
             
         case let .TapSettingsBtn(user, modal, showMute, publicReply, mute, follow):
@@ -422,76 +537,103 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
         }
         switch twee[indexPath.row] {
         case let media where !media.mediaImageURLs.isEmpty:
-            let cell = tableView.dequeueReusableCell(withIdentifier: "media", for: indexPath) as! TweetMediaCell
-            cell.tweet = media
+            let cell = tableView.dequeueReusableCell(withIdentifier: "MediaCell", for: indexPath) as! MediaCell
+            cell.tweetSetConfigure(tweet: media)
             cell.indexPath = indexPath
             if self.dataMediaScale?.indexPath == nil {
-                if let imageLoadOperation = imageLoadOperations[indexPath], let imageLoadOperationMedia = imageLoadOperationsMedia[indexPath] {
-                    media.userPicImage.onNext(imageLoadOperation.image ?? UIImage.getEmptyImageWithColor(color: UIColor.white))
-                    media.image.onNext(imageLoadOperationMedia.image ?? UIImage.getEmptyImageWithColor(color: UIColor.white))
-                } else {
-                    let imageLoadOperation = ImageLoadOperation(url: media.userAvatar)
-                    imageLoadOperation.completionHandler = { [weak self] (image) in
-                        guard let strongSelf = self else { return }
-                        media.userPicImage.onNext(image)
-                        strongSelf.imageLoadOperations.removeValue(forKey: indexPath)
-                    }
-                    imageLoadQueue.addOperation(imageLoadOperation)
-                    imageLoadOperations[indexPath] = imageLoadOperation
-                    
-                    let imageLoadOperationMedia = ImageLoadOperation(url: media.mediaImageURLs.first!)
-                    imageLoadOperationMedia.completionHandler = { [weak self] (image) in
-                        guard let strongSelf = self else { return }
-                        media.image.onNext(image)
-                        strongSelf.imageLoadOperationsMedia.removeValue(forKey: indexPath)
-                    }
-                    imageLoadQueue.addOperation(imageLoadOperationMedia)
-                    imageLoadOperationsMedia[indexPath] = imageLoadOperationMedia
-                }
+                fetchImageForCell(index: indexPath, data: media)
             }
-            cell.layoutIfNeeded()
             return cell
         case let quote where quote.quote != nil:
             let cell = tableView.dequeueReusableCell(withIdentifier: "quoteCompact", for: indexPath) as! QuoteCell
-            cell.tweet = quote
+            cell.tweetSetConfigure(tweet: quote)
             cell.indexPath = indexPath
-            if let imageLoadOperation = imageLoadOperations[indexPath], let image = imageLoadOperation.image {
-                quote.userPicImage.onNext(image)
-            } else {
-                let imageLoadOperation = ImageLoadOperation(url: quote.userAvatar)
-                imageLoadOperation.completionHandler = { [weak self] (image) in
-                    guard let strongSelf = self else { return }
-                    quote.userPicImage.onNext(image)
-                    strongSelf.imageLoadOperations.removeValue(forKey: indexPath)
+            if !quote.quote!.mediaImageURLs.isEmpty {
+                DispatchQueue.global().async {
+                    cell.imageQuote.sd_setImage(with: quote.quote?.mediaImageURLs.first)
                 }
-                imageLoadQueue.addOperation(imageLoadOperation)
-                imageLoadOperations[indexPath] = imageLoadOperation
             }
-            cell.layoutIfNeeded()
+            self.fetchImageForCell(index: indexPath, data: quote)
             return cell
         case let compact where !compact.tweetID.isEmpty:
-            let cell = tableView.dequeueReusableCell(withIdentifier: "compact", for: indexPath) as! TweetCompactCell
-            cell.tweet = twee[indexPath.row]
+            let cell = tableView.dequeueReusableCell(withIdentifier: "CompactCell", for: indexPath) as! CompactCell
+            cell.tweetSetConfigure(tweet: twee[indexPath.row])
             cell.indexPath = indexPath
-            if let imageLoadOperation = imageLoadOperations[indexPath],
-                let image = imageLoadOperation.image {
-                twee[indexPath.row].userPicImage.onNext(image)
-            } else {
-                let imageLoadOperation = ImageLoadOperation(url: twee[indexPath.row].userAvatar)
-                imageLoadOperation.completionHandler = { [weak self] (image) in
-                    guard let strongSelf = self else { return }
-                    twee[indexPath.row].userPicImage.onNext(image)
-                    strongSelf.imageLoadOperations.removeValue(forKey: indexPath)
-                }
-                imageLoadQueue.addOperation(imageLoadOperation)
-                imageLoadOperations[indexPath] = imageLoadOperation
-            }
-            cell.layoutIfNeeded()
+            self.fetchImageForCell(index: indexPath, data: compact)
             return cell
             
         default:
             tableView.separatorStyle = .none
             return UITableViewCell()
+        }
+    }
+    
+    private func fetchImageForCell(index: IndexPath, data: ViewModelTweet) {
+        if !data.mediaImageURLs.isEmpty {
+            if let imageLoadOperation = imageLoadOperations[index], let imageLoadOperationMedia = imageLoadOperationsMedia[index] {
+                if imageLoadOperationMedia.image == nil {
+                    imageLoadOperationsMedia[index]?.cancel()
+                    imageLoadOperationsMedia.removeValue(forKey: index)
+                    let imageLoadOperationMedia = ImageLoadOperation(url: data.mediaImageURLs.first!)
+                    imageLoadOperationMedia.completionHandler = { [weak self] (image) in
+                        guard let strongSelf = self else { return }
+                        data.image.onNext(image)
+                        strongSelf.imageLoadOperationsMedia.removeValue(forKey: index)
+                    }
+                    imageLoadQueue.addOperation(imageLoadOperationMedia)
+                    imageLoadOperationsMedia[index] = imageLoadOperationMedia
+                    
+                } else {
+                    data.image.onNext(imageLoadOperationMedia.image!)
+                }
+                if imageLoadOperation.image == nil {
+                    imageLoadOperations[index]?.cancel()
+                    imageLoadOperations.removeValue(forKey: index)
+                    let imageLoadOperation = ImageLoadOperation(url: data.userAvatar)
+                    imageLoadOperation.completionHandler = { [weak self] (image) in
+                        guard let strongSelf = self else { return }
+                        data.userPicImage.onNext(image)
+                        strongSelf.imageLoadOperations.removeValue(forKey: index)
+                    }
+                    imageLoadQueue.addOperation(imageLoadOperation)
+                    imageLoadOperations[index] = imageLoadOperation
+                    
+                } else {
+                    data.userPicImage.onNext(imageLoadOperation.image!)
+                }
+            } else {
+                let imageLoadOperation = ImageLoadOperation(url: data.userAvatar)
+                imageLoadOperation.completionHandler = { [weak self] (image) in
+                    guard let strongSelf = self else { return }
+                    data.userPicImage.onNext(image)
+                    strongSelf.imageLoadOperations.removeValue(forKey: index)
+                }
+                imageLoadQueue.addOperation(imageLoadOperation)
+                imageLoadOperations[index] = imageLoadOperation
+                
+                let imageLoadOperationMedia = ImageLoadOperation(url: data.mediaImageURLs.first!)
+                imageLoadOperationMedia.completionHandler = { [weak self] (image) in
+                    guard let strongSelf = self else { return }
+                    data.image.onNext(image)
+                    //self?.tableView.layoutIfNeeded()
+                    strongSelf.imageLoadOperationsMedia.removeValue(forKey: index)
+                }
+                imageLoadQueue.addOperation(imageLoadOperationMedia)
+                imageLoadOperationsMedia[index] = imageLoadOperationMedia
+            }
+        } else {
+            if let imageLoadOperation = imageLoadOperations[index], let image = imageLoadOperation.image {
+                data.userPicImage.onNext(image)
+            } else {
+                let imageLoadOperation = ImageLoadOperation(url: data.userAvatar)
+                imageLoadOperation.completionHandler = { [weak self] (image) in
+                    guard let strongSelf = self else { return }
+                    data.userPicImage.onNext(image)
+                    strongSelf.imageLoadOperations.removeValue(forKey: index)
+                }
+                imageLoadQueue.addOperation(imageLoadOperation)
+                imageLoadOperations[index] = imageLoadOperation
+            }
         }
     }
     
@@ -502,14 +644,12 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
     
     
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        //var headerRect = CGRect(x: 0, y: -(tableHeaderHeight), width: tableView.bounds.width, height: tableHeaderHeight)
         if tableView.contentOffset.y < -(tableHeaderHeight) {
             var headerRect = CGRect(x: 0, y: -(tableHeaderHeight), width: tableView.bounds.width, height: tableHeaderHeight)
             headerRect.origin.y = tableView.contentOffset.y
             headerRect.size.height = -tableView.contentOffset.y
             headerView.frame = headerRect
         }
-        
         guard let twee = self.tweet else { return }
         if twee.count < 8 {
             UIView.animate(withDuration: 0.3) { self.tableView.contentInset = UIEdgeInsets(top: self.tableHeaderHeight, left: 0, bottom: 50.0, right: 0) }
@@ -526,7 +666,7 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                 loadingMoreTweets = NVActivityIndicatorView(frame: rectProgress, type: .lineScalePulseOutRapid, color: UIColor(red: 255/255, green: 0/255, blue: 104/255, alpha: 1), padding: 0)
                 loadingView?.addSubview(loadingMoreTweets!)
                 loadingMoreTweets?.startAnimating()
-                DispatchQueue.global().asyncAfter(deadline: .now() + 2.0, execute: {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0, execute: {
                     self.reloadData(append: true)
                 })
                 
@@ -536,7 +676,6 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                 perform(#selector(UIScrollViewDelegate.scrollViewDidEndScrollingAnimation), with: nil, afterDelay: 0.3)
             }
         }
-        
     }
     
     func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
@@ -544,19 +683,16 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
         if isMoreDataLoading.start {
             if self.isMoreDataLoading.download {
                 self.isMoreDataLoading = (start: false, finish: true, download: false)
-                let pointOffSetY = self.tableView.contentSize.height - self.tableView.bounds.height - 50.0
+                let pointOffSetY = self.tableView.contentSize.height - self.tableView.bounds.height
+                self.loadingMoreTweets?.stopAnimating()
+                self.loadingMoreTweets?.removeFromSuperview()
+                self.loadingView?.removeFromSuperview()
+                self.loadingMoreTweets = nil
+                self.loadingView = nil
                 self.tableView.setContentOffset(CGPoint(x: 0.0, y: pointOffSetY), animated: true)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: {
-                    self.loadingMoreTweets?.stopAnimating()
-                    self.loadingMoreTweets?.removeFromSuperview()
-                    self.loadingView?.removeFromSuperview()
-                    self.loadingMoreTweets = nil
-                    self.loadingView = nil
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: {
                     self.tableView.reloadData()
-                })
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4, execute: {
-                    
-                    self.tableView.setContentOffset(CGPoint(x: 0.0, y: pointOffSetY + (self.tableView.contentOffset.y - pointOffSetY) + 150.0), animated: true)
+                    self.tableView.setContentOffset(CGPoint(x: 0.0, y: pointOffSetY + (self.tableView.contentOffset.y - pointOffSetY) + 100.0), animated: true)
                     self.isMoreDataLoading.finish = false
                 })
             } else if !self.isMoreDataLoading.finish {
@@ -571,20 +707,135 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
             if let detail = segue.destination as? DetailsVC {
                 if let cell = sender as? UITableViewCell {
                     let indexPath = tableView.indexPath(for: cell)
-                    detail.tweet = tweet![(indexPath?.row)!]
+                    if let index = indexPath, let twee = self.tweet?[index.row] {
+                        customAttributeForDetailsVC(tweet: twee, complete: { data in
+                            detail.attributeText = data
+                            detail.tweet = twee
+                        })
+                    }
                 }
             }
         case .DetailsVCMedia:
             if let detail = segue.destination as? DetailsVC {
                 if let cell = sender as? UITableViewCell {
                     let indexPath = tableView.indexPath(for: cell)
-                    detail.tweet = tweet![(indexPath?.row)!]
+                    if let index = indexPath, let twee = self.tweet?[index.row] {
+                        customAttributeForDetailsVC(tweet: twee, complete: { data in
+                            detail.attributeText = data
+                            detail.tweet = twee
+                        })
+                    }
+                }
+            }
+        case .DetailsVCQuote:
+            if let detail = segue.destination as? DetailsVC {
+                if let cell = sender as? UITableViewCell {
+                    let indexPath = tableView.indexPath(for: cell)
+                    if let index = indexPath, let twee = self.tweet?[index.row] {
+                        customAttributeForDetailsVC(tweet: twee, complete: { data in
+                            detail.attributeText = data
+                            detail.tweet = twee
+                        })
+                    }
                 }
             }
         case .ProfilePageVC:
             if let detail = segue.destination as? ProfilePageVC {
                 detail.user = self.user
+            }
+        }
+    }
+    
+    private func customAttributeForDetailsVC(tweet: ViewModelTweet, complete: @escaping (_ data: NSMutableAttributedString) -> ()) {
+        let text = tweet.text
+        let attribute = NSMutableAttributedString(attributedString: text)
+        attribute.beginEditing()
+        attribute.enumerateAttribute(NSFontAttributeName, in: NSRange(location: 0, length: text.length), using: { (value, range, stop) in
+            if let oldFont = value as? UIFont {
+                let newFont = oldFont.withSize(14.5)
+                attribute.removeAttribute(NSFontAttributeName, range: range)
+                attribute.addAttribute(NSFontAttributeName, value: newFont, range: range)
+            }
+        })
+        attribute.endEditing()
+        complete(attribute)
+    }
+    
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        let row = indexPath.row
+        let count = heightCell.count
+        if row < count, heightCell[row] != 0.0 {
+            return heightCell[row]
+        } else {
+            guard let twee = tweet else { return 0.0 }
+            if twee.isEmpty { return 82.0 }
+            
+            let tweetHeight = twee[indexPath.row]
+            if !tweetHeight.mediaImageURLs.isEmpty {
+                let object = UINib(nibName: "Media", bundle: nil).instantiate(withOwner: nil)
+                let cell = object.first as! MediaCell
+                let initialSizeTextLbl = cell.tweetContentText.frame.size
+                let rect = tweetHeight.text.boundingRect(with:  CGSize(width: initialSizeTextLbl.width, height: CGFloat.greatestFiniteMagnitude), options: .usesLineFragmentOrigin, context: nil)
+                let viewContent = cell.contentView
+                let size = viewContent.systemLayoutSizeFitting(UILayoutFittingCompressedSize)
+                let finaleSize: CGFloat
+                if tweetHeight.retweetedType.isEmpty {
+                    finaleSize = size.height + ceil(rect.size.height) - 12.0 + 1.0
+                } else {
+                    finaleSize = size.height + ceil(rect.size.height) + 1.0
+                }
+                if row < count {
+                    heightCell.insert(finaleSize, at: row)
+                } else {
+                    heightCell.append(finaleSize)
+                }
+                return finaleSize
+            } else if tweetHeight.quote != nil {
+                let object = UINib(nibName: "Quote", bundle: nil).instantiate(withOwner: nil)
+                let cell = object.first as! QuoteCell
+                let initialSizeTextLbl = cell.tweetContentText.frame.size
+                let rect = tweetHeight.text.boundingRect(with:  CGSize(width: initialSizeTextLbl.width, height: CGFloat.greatestFiniteMagnitude), options: .usesLineFragmentOrigin, context: nil)
                 
+                let sizeQuoteTextLbl: CGFloat
+                if !tweetHeight.quote!.mediaImageURLs.isEmpty {
+                    sizeQuoteTextLbl = 2.0 + 60.0
+                } else {
+                    let rectQuote = tweetHeight.quote!.text.boundingRect(with:  CGSize(width: cell.textQuote.frame.size.width, height: CGFloat.greatestFiniteMagnitude), options: .usesLineFragmentOrigin, context: nil)
+                    sizeQuoteTextLbl = ceil(rectQuote.size.height)
+                }
+                let viewContent = cell.contentView
+                let size = viewContent.systemLayoutSizeFitting(UILayoutFittingCompressedSize)
+                let finaleSize: CGFloat
+                if tweetHeight.retweetedType.isEmpty {
+                    finaleSize = size.height + ceil(rect.size.height) - 12.0 + 1.0 + sizeQuoteTextLbl
+                } else {
+                    finaleSize = size.height + ceil(rect.size.height) + 1.0 + sizeQuoteTextLbl
+                }
+                if row < count {
+                    heightCell.insert(finaleSize, at: row)
+                } else {
+                    heightCell.append(finaleSize)
+                }
+                return finaleSize
+            } else {
+                let object = UINib(nibName: "Compact", bundle: nil).instantiate(withOwner: nil)
+                let cell = object.first as! CompactCell
+                let initialSizeTextLbl = cell.tweetContentText.frame.size
+                let rect = tweetHeight.text.boundingRect(with:  CGSize(width: initialSizeTextLbl.width, height: CGFloat.greatestFiniteMagnitude), options: .usesLineFragmentOrigin, context: nil)
+                let viewContent = cell.contentView
+                let size = viewContent.systemLayoutSizeFitting(UILayoutFittingCompressedSize)
+                let finaleSize: CGFloat
+                if tweetHeight.retweetedType.isEmpty {
+                    finaleSize = size.height + ceil(rect.size.height) - 12.0 + 1.0
+                } else {
+                    finaleSize = size.height + ceil(rect.size.height) + 1.0
+                }
+                if row < count {
+                    heightCell.insert(finaleSize, at: row)
+                } else {
+                    heightCell.append(finaleSize)
+                }
+                return finaleSize
             }
         }
     }
@@ -629,7 +880,7 @@ extension ProfileVC: ImageTransitionProtocol {
             self.headerView.backgroundImage.image = nil
         } else {
             if let twee = self.tweet, let data = self.dataMediaScale {
-                twee[data.indexPath!.row].image.onNext(UIImage.getEmptyImageWithColor(color: UIColor.white))
+                twee[data.indexPath!.row].image.onNext(UIImage.getEmptyImageWithColor(color: UIColor(red: 247/255, green: 247/255, blue: 247/255, alpha: 1.0)))
             }
         }
     }
@@ -683,6 +934,11 @@ extension ProfileVC: UITableViewDataSourcePrefetching {
                     let imageMedia = ImageLoadOperation(url: twee.mediaImageURLs.first!)
                     imageLoadQueue.addOperation(imageMedia)
                     imageLoadOperationsMedia[indexPath] = imageMedia
+                    
+                    guard let tweet = twee.quote else { continue }
+                    if !tweet.mediaImageURLs.isEmpty {
+                        SDWebImagePrefetcher.shared().prefetchURLs([tweet.mediaImageURLs.first!])
+                    }
                 }
             }
             #if DEBUG_CELL_LIFECYCLE

@@ -15,6 +15,7 @@ class ModelTweet {
     var dictUrlsTap = Dictionary<String, NSRange>()
     let retweetedType: String
     let tweetID: String
+    let lastTweetID: String
     let userName: String
     let userScreenName: String
     var replyBtn: Bool
@@ -33,10 +34,13 @@ class ModelTweet {
     var timeStamp: String
     var retweetedScreenName: String
     var userMentions = [String]()
+    var via: String
+    var followingStatus: Bool
     
     init(parse: Tweet) {
         
         tweetID = parse.tweetID
+        lastTweetID = parse.lastTweetID
         userName = parse.username!
         userScreenName = "@" + parse.userScreenName!
         replyBtn = parse.replyBtn
@@ -53,12 +57,33 @@ class ModelTweet {
         timeStamp = parse.timeStamp!
         retweetedScreenName = parse.retweetedScreenName!
         userMentions = parse.userMentions
-        if parse.quote != nil { quote = ModelTweet(parse: parse.quote!)}
+        followingStatus = parse.followingStatus
+        if parse.quote != nil {
+            quote = ModelTweet(parse: parse.quote!)
+            let text = quote!.text
+            let attribute = NSMutableAttributedString(attributedString: text)
+            attribute.beginEditing()
+            attribute.enumerateAttribute(NSFontAttributeName, in: NSRange(location: 0, length: text.length), using: { (value, range, stop) in
+                if let oldFont = value as? UIFont {
+                let newFont = oldFont.withSize(12.5)
+                attribute.removeAttribute(NSFontAttributeName, range: range)
+                attribute.addAttribute(NSFontAttributeName, value: newFont, range: range)
+                }
+            })
+            attribute.endEditing()
+            quote!.text = attribute
+        }
         
+        var tempVia = parse.via!
+        tempVia.characters.removeFirst(1)
+        let rangeStart = tempVia.indexOf(">")
+        let rangeEnd = tempVia.indexOf("<")
+        via = tempVia.substringBetween(from: rangeStart, to: rangeEnd)
+    
         // TEXTATTRIBUTED
         var displayURL = [String]()
         var textParse = parse.text!
-        textParse = textParse.replace(target: "\n", withString: "")
+        textParse = textParse.replace(target: "\n\n", withString: "\n")
         if let urls = parse.urls, urls.count > 0 {
             for json in urls {
                 let urlText = json["url"].string
@@ -80,12 +105,13 @@ class ModelTweet {
                 }
             }
         }
+        textParse = textParse.replace(target: "\n\n", withString: "\n")
+        textParse = textParse.trimmingCharacters(in: .whitespacesAndNewlines)
+        text = NSMutableAttributedString(string: textParse)
+        text.addAttribute(NSFontAttributeName, value: UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightRegular), range: NSRange(location: 0, length: text.length))
         
         if displayURL.count > 0 {
             let urlText = " " + displayURL.joined(separator: " ")
-            text = NSMutableAttributedString(string: textParse)
-            
-            text.addAttribute(NSFontAttributeName, value: UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightRegular), range: NSRange(location: 0, length: textParse.characters.count))
             if parse.userMentions.count > 0 {
                 for texts in parse.userMentions {
                     let range = text.mutableString.range(of: texts, options: [.caseInsensitive])
@@ -102,8 +128,8 @@ class ModelTweet {
                 }
             }
             let links = NSMutableAttributedString(string: urlText)
-            links.addAttribute(NSFontAttributeName, value: UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightRegular), range: NSRange(location: 0, length: urlText.characters.count))
-            links.addAttribute(NSForegroundColorAttributeName, value: UIColor(red: 36/255.0, green: 144/255.0, blue: 212/255.0, alpha: 1), range: NSRange(location: 0, length: urlText.characters.count))
+            links.addAttribute(NSFontAttributeName, value: UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightRegular), range: NSRange(location: 0, length: links.length))
+            links.addAttribute(NSForegroundColorAttributeName, value: UIColor(red: 36/255.0, green: 144/255.0, blue: 212/255.0, alpha: 1), range: NSRange(location: 0, length: links.length))
             text.append(links)
             for url in displayURL {
                 let rangeNSString = text.mutableString.range(of: url)
@@ -117,29 +143,15 @@ class ModelTweet {
             style.minimumLineHeight = font.lineHeight
             style.maximumLineHeight = font.lineHeight
             style.lineBreakMode = NSLineBreakMode.byWordWrapping
-            text.addAttribute(NSParagraphStyleAttributeName, value: style, range: NSRange(location: 0, length: text.string.characters.count))
+            text.addAttribute(NSParagraphStyleAttributeName, value: style, range: NSRange(location: 0, length: text.length))
             
         } else if let hash = parse.hashtag, (parse.hashtag?.count)! > 0 {
-            
-            text = NSMutableAttributedString(string: textParse)
-            
-            text.addAttribute(NSFontAttributeName, value: UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightRegular), range: NSRange(location: 0, length: textParse.characters.count))
             for json in hash {
                 let texts = "#" + json["text"].string!
                 let hashString = NSMutableAttributedString(string: texts, attributes: [NSFontAttributeName : UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightRegular), NSForegroundColorAttributeName : UIColor.gray])
                 let range = text.mutableString.range(of: texts)
                 text.replaceCharacters(in: range, with: hashString)
             }
-            
-            let style = NSMutableParagraphStyle()
-            style.lineSpacing = 1.5
-            let font = UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightRegular)
-            style.lineHeightMultiple = 1.0
-            style.minimumLineHeight = font.lineHeight
-            style.maximumLineHeight = font.lineHeight
-            style.lineBreakMode = NSLineBreakMode.byWordWrapping
-            text.addAttribute(NSParagraphStyleAttributeName, value: style, range: NSRange(location: 0, length: text.string.characters.count))
-            
             if parse.userMentions.count > 0 {
                 for texts in parse.userMentions {
                     let range = text.mutableString.range(of: texts, options: [.caseInsensitive])
@@ -147,31 +159,20 @@ class ModelTweet {
                     text.replaceCharacters(in: range, with: prefix)
                 }
             }
-        } else if parse.userMentions.count > 0 {
-            
-            text = NSMutableAttributedString(string: textParse)
-            
-            text.addAttribute(NSFontAttributeName, value: UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightRegular), range: NSRange(location: 0, length: textParse.characters.count))
-            
             let style = NSMutableParagraphStyle()
+            style.lineSpacing = 1.5
             let font = UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightRegular)
             style.lineHeightMultiple = 1.0
             style.minimumLineHeight = font.lineHeight
             style.maximumLineHeight = font.lineHeight
-            style.lineSpacing = 1.5
             style.lineBreakMode = NSLineBreakMode.byWordWrapping
-            text.addAttribute(NSParagraphStyleAttributeName, value: style, range: NSRange(location: 0, length: text.string.characters.count))
+            text.addAttribute(NSParagraphStyleAttributeName, value: style, range: NSRange(location: 0, length: text.length))
+        } else if parse.userMentions.count > 0 {
             for texts in parse.userMentions {
                 let range = text.mutableString.range(of: texts, options: [.caseInsensitive])
                 let prefix = NSMutableAttributedString(string: texts, attributes: [NSFontAttributeName : UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightBold), NSForegroundColorAttributeName : UIColor(red: 25/255.0, green: 109/255.0, blue: 161/255.0, alpha: 1)])
                 text.replaceCharacters(in: range, with: prefix)
             }
-        } else {
-            
-            text = NSMutableAttributedString(string: textParse)
-            
-            text.addAttribute(NSFontAttributeName, value: UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightRegular), range: NSRange(location: 0, length: textParse.characters.count))
-            
             let style = NSMutableParagraphStyle()
             let font = UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightRegular)
             style.lineHeightMultiple = 1.0
@@ -179,7 +180,16 @@ class ModelTweet {
             style.maximumLineHeight = font.lineHeight
             style.lineSpacing = 1.5
             style.lineBreakMode = NSLineBreakMode.byWordWrapping
-            text.addAttribute(NSParagraphStyleAttributeName, value: style, range: NSRange(location: 0, length: text.string.characters.count))
+            text.addAttribute(NSParagraphStyleAttributeName, value: style, range: NSRange(location: 0, length: text.length))
+        } else {
+            let style = NSMutableParagraphStyle()
+            let font = UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightRegular)
+            style.lineHeightMultiple = 1.0
+            style.minimumLineHeight = font.lineHeight
+            style.maximumLineHeight = font.lineHeight
+            style.lineSpacing = 1.5
+            style.lineBreakMode = NSLineBreakMode.byWordWrapping
+            text.addAttribute(NSParagraphStyleAttributeName, value: style, range: NSRange(location: 0, length: text.length))
         }
         
         if parse.retweetTweetID != nil, parse.retweetBtn, parse.retweetedName != Profile.account?.name{

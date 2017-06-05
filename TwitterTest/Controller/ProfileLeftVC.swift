@@ -27,6 +27,8 @@ class ProfileLeftVC: UIViewController, UIViewControllerTransitioningDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        connection.layer.cornerRadius = 2.0
+        connection.clipsToBounds = true
         followersBtn.rx.controlEvent(UIControlEvents.touchDown).subscribe(onNext: { [weak self] _ in
             self?.followersBtn.setImage(UIImage(named: "followersPushBtn"), for: .highlighted)
         }).addDisposableTo(dis)
@@ -40,7 +42,7 @@ class ProfileLeftVC: UIViewController, UIViewControllerTransitioningDelegate {
     private func stuffingViews(data: [JSON]) {
         if !Profile.arrayIdFollowers.isEmpty, Profile.arrayIdFollowers.contains(where: {$0.integer == Int(user.id)}) {
             self.connection.text = "follows you"
-            self.connection.backgroundColor = UIColor(red: 33/255, green: 150/255, blue: 243/255, alpha: 1)
+            self.connection.backgroundColor = UIColor(red: 80/255, green: 154/255, blue: 255/255, alpha: 1)
             self.user.followYou = true
         } else {
             self.connection.text = "does not follow you"
@@ -70,7 +72,6 @@ class ProfileLeftVC: UIViewController, UIViewControllerTransitioningDelegate {
             }
         }
     }
-    
 }
 
 class InsetLabel: UILabel {

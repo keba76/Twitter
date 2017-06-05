@@ -42,16 +42,11 @@ class ProfileHeader: UIView {
         self.userName.text = "@" + (user?.screenName)!
         
         if user?.imageBanner == nil {
-            self.backgroundImage.backgroundColor = UIColor(red: 3/255, green: 169/255, blue: 244/255, alpha: 1)
+            self.backgroundImage.image = UIImage.getEmptyImageWithColor(color: UIColor(red: 3/255, green: 169/255, blue: 244/255, alpha: 1))
         } else {
             SDWebImageManager.shared().downloadImage(with: user?.imageBanner, options: .continueInBackground, progress: { (_ , _) in
                 self.backgroundImage.image = nil
             }, completed: { (image, error, cache, _ , _) in
-//                guard let imageResize = image else { return }
-//                let w = imageResize.size.width
-//                let h = imageResize.size.height
-//                let size = w/h > 0 ? CGSize(width: 580.0, height: 580.0/(w/h)) : CGSize(width: 580.0, height: 580.0 * (w/h))
-//               let imageTemp = imageResize.imageWithImage(image: imageResize, scaledToSize: size)
                 self.backgroundImage.image = image
                 self.imageBanner = image
             })
@@ -59,7 +54,7 @@ class ProfileHeader: UIView {
         
         SDWebImageManager.shared().downloadImage(with: user?.avatar, progress: { (_ , _) in
         }) { (image, error, cache , _ , _) in
-           
+            
             if image == nil {
                 let urlString = self.user?.avatar?.absoluteString
                 if let url = urlString, url.contains("profile_images") {

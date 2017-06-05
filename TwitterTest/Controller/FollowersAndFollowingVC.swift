@@ -43,9 +43,7 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
         tableView.dataSource = self
         tableView.tableFooterView = UIView()
         
-        if #available(iOS 10.0, *) {
-            tableView.prefetchDataSource = self
-        }
+        if #available(iOS 10.0, *) { tableView.prefetchDataSource = self }
         
         self.navigationItem.title = self.typeUser == "Followers" ? "Followers" : "Followings"
         
@@ -54,7 +52,7 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
         tableView.contentInset.bottom += 11.0
         
         
-        let rectProgress = CGRect(x: view.bounds.width/2 - 25.0, y: view.bounds.height/2 - 25.0, width: 50.0, height: 50.0)
+        let rectProgress = CGRect(x: view.bounds.width/2 - 20.0, y: view.bounds.height/2 - 20.0, width: 40.0, height: 40.0)
         viewProgress = NVActivityIndicatorView(frame: rectProgress, type: .lineScalePulseOut, color: UIColor(red: 255/255, green: 0/255, blue: 104/255, alpha: 1), padding: 0)
         
         self.view.addSubview(self.viewProgress!)
@@ -175,10 +173,10 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
         }
     }
     
-    
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return users.count > 0 ? users.count : users.count == 0 && download ? 1 : 0
     }
+    
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         if self.users.count == 0 && download {
             let cell = tableView.dequeueReusableCell(withIdentifier: "EmptyCell") as! EmptyCell
