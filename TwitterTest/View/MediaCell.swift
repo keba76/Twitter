@@ -22,6 +22,7 @@ class MediaCell: UITableViewCell {
     @IBOutlet weak var retweetBtn: DOFavoriteButton!
     @IBOutlet weak var favoriteBtn: DOFavoriteButton!
     @IBOutlet weak var replyBtn: DOFavoriteButton!
+    @IBOutlet weak var settingsBtn: DOFavoriteButton!
     @IBOutlet weak var retweetedLbl: UILabel!
     
     @IBOutlet weak var logoHeightConstraint: NSLayoutConstraint!
@@ -33,7 +34,7 @@ class MediaCell: UITableViewCell {
     var delegate: TwitterTableViewDelegate?
     
     var dis = DisposeBag()
-   override func prepareForReuse() { dis = DisposeBag() }
+    override func prepareForReuse() { dis = DisposeBag() }
     
     func tweetSetConfigure(tweet: ViewModelTweet) {
         if logoHeightConstraint != nil {
@@ -86,6 +87,14 @@ class MediaCell: UITableViewCell {
             }.addDisposableTo(self.dis)
         
         DispatchQueue.global().async {
+            tweet.settingsBtn
+                .asObservable()
+                .observeOn(MainScheduler.instance)
+                .bindNext { [weak self] data in
+                    guard let s = self else { return }
+                    s.settingsBtn.isSelected = data
+                }.addDisposableTo(self.dis)
+            
             tweet.replyBtn
                 .asObservable()
                 .observeOn(MainScheduler.instance)
@@ -101,7 +110,7 @@ class MediaCell: UITableViewCell {
                     guard let s = self else { return }
                     s.retweetBtn.isSelected = data
                 }.addDisposableTo(self.dis)
-
+            
             tweet.favoriteBtn
                 .asObservable()
                 .observeOn(MainScheduler.instance)
@@ -177,6 +186,15 @@ class MediaCell: UITableViewCell {
                     } else {
                         tweet.cellData.value = tweet.userMentions.count > 0 || tweet.retweetTweetID != nil ? CellData.Reply(tweet: tweet, modal: true, replyAll: false) : CellData.Reply(tweet: tweet, modal: false, replyAll: false)
                     }
+                }.addDisposableTo(self.dis)
+            
+            self.settingsBtn.rx.tap
+                .observeOn(MainScheduler.instance)
+                .bindNext { [weak self] _ in
+                    guard let s = self else { return }
+                    if !s.settingsBtn.isSelected { s.settingsBtn.select() }
+                    tweet.settingsBtn.onNext(true)
+                    tweet.cellData.value = CellData.Settings(index: s.indexPath!, tweet: tweet, delete: false, viewDetail: false, viewRetweets: false, modal: true)
                 }.addDisposableTo(self.dis)
             
             tapUserPic.rx.event

@@ -24,6 +24,8 @@
         var tweetDetails: ViewModelTweet?
         var tweetChain = [ViewModelTweet]()
         var instanceDetail: TwitterClient?
+        var indexPath: IndexPath?
+        var quoteTap = false
         
         var heightCell = Array<CGFloat>()
         var attributeText: NSMutableAttributedString?
@@ -143,6 +145,13 @@
                         saveStatusBtn(tweet: tweetChain[index.row], data: ("r", false))
                     }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { self.tableView.reloadRows(at: [index], with: .none) }
+                } else {
+                    if quoteTap {
+                        self.tweet?.retweetBtn.onNext(try! tweetChain[0].retweetBtn.value())
+                        self.tweet?.retweetCount.onNext(try! tweetChain[0].retweetCount.value())
+                        self.tweet?.favoriteBtn.onNext(try! tweetChain[0].favoriteBtn.value())
+                        self.tweet?.favoriteCount.onNext(try! tweetChain[0].favoriteCount.value())
+                    }
                 }
             case let .Reply(twee, modal, replyAll):
                 print(data)
@@ -178,6 +187,82 @@
                         }
                     }
                 }
+            case let .Settings(index, twee, delete, viewDetail, viewRetweets, modal):
+                if modal {
+                    guard let userName = Profile.account?.screenName else { return }
+                    if twee.userScreenName == "@\(userName)" {
+                        let controller = UIStoryboard(name: "Main", bundle: Bundle.main).instantiateViewController(withIdentifier: "ModallyVC") as! ModallyVC
+                        controller.transitioningDelegate = self
+                        controller.modalPresentationStyle = .custom
+                        controller.tweet = twee
+                        controller.index = index
+                        controller.variety = index.row == 0 ? VarietyModally.settingsDetailOfMe : VarietyModally.settingsProfile
+                        present(controller, animated: true, completion: nil)
+                        if index.row == 0 {
+                            controller.thirdBtn.setImage(UIImage(named: "delete"), for: .normal)
+                            controller.secondBtn.setImage(UIImage(named: "viewRetweets"), for: .normal)
+                        } else {
+                            controller.fourthBtn.setImage(UIImage(named: "delete"), for: .normal)
+                            controller.thirdBtn.setImage(UIImage(named: "viewDetail"), for: .normal)
+                            controller.secondBtn.setImage(UIImage(named: "viewRetweets"), for: .normal)
+                        }
+                    } else {
+                        let controller = UIStoryboard(name: "Main", bundle: Bundle.main).instantiateViewController(withIdentifier: "ModallyVC") as! ModallyVC
+                        controller.transitioningDelegate = self
+                        controller.modalPresentationStyle = .custom
+                        controller.tweet = twee
+                        controller.index = index
+                        controller.variety = index.row == 0 ? VarietyModally.settingsDetail : VarietyModally.settings
+                        present(controller, animated: true, completion: nil)
+                        if index.row == 0 {
+                            controller.secondBtn.setImage(UIImage(named: "viewRetweets"), for: .normal)
+                        } else {
+                            controller.thirdBtn.setImage(UIImage(named: "viewDetail"), for: .normal)
+                            controller.secondBtn.setImage(UIImage(named: "viewRetweets"), for: .normal)
+                        }
+                    }
+                } else {
+                    twee.settingsBtn.onNext(false)
+                    switch true {
+                    case delete:
+                        if index.row == 0 {
+                            _ = navigationController?.popViewController(animated: true)
+                            self.tweet?.cellData.value = CellData.Settings(index: self.indexPath!, tweet: self.tweet!, delete: true, viewDetail: false, viewRetweets: false, modal: false)
+                        } else {
+                            TwitterClient.swifter.destroyTweet(forID: twee.tweetID)
+                            self.tableView.beginUpdates()
+                            self.heightCell.remove(at: index.row)
+                            self.tweetChain.remove(at: index.row)
+                            self.tableView.deleteRows(at: [index], with: .bottom)
+                            self.tableView.endUpdates()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8, execute: { self.tableView.reloadData() })
+                        }
+                    case viewDetail:
+                        let controller = UIStoryboard(name: "Main", bundle: Bundle.main).instantiateViewController(withIdentifier: "DetailsVC") as! DetailsVC
+                        customAttributeForDetailsVC(tweet: twee, complete: { data in
+                            controller.attributeText = data
+                            controller.tweet = twee
+                        })
+                        SDWebImageManager.shared().downloadImage(with: twee.userAvatar, progress: { (_, _) in }, completed: { (image, error, cache, _, _) in
+                            twee.userPicImage.onNext(image!)
+                        })
+                        if let url = twee.mediaImageURLs.first {
+                            SDWebImageManager.shared().downloadImage(with: url, progress: { (_, _) in }, completed: { (image, error, cache, _, _) in
+                                twee.image.onNext(image!)
+                            })
+                        }
+                        //self.navigationItem.title = "Timeline"
+                        self.navigationController?.pushViewController(controller, animated: true)
+                    case viewRetweets:
+                        let controller = UIStoryboard(name: "Main", bundle: Bundle.main).instantiateViewController(withIdentifier: "FollowersAndFollowingVC") as! FollowersAndFollowingVC
+                        controller.tweetID = twee.tweetID
+                        //self.navigationItem.title = "Timeline"
+                        self.navigationController?.pushViewController(controller, animated: true)
+                    default:
+                        break
+                    }
+                }
+                
             case let .MediaScale(index, convert):
                 var frameCell = self.tableView.rectForRow(at: (index))
                 frameCell = CGRect(origin: CGPoint(x: frameCell.origin.x + convert.origin.x, y: frameCell.origin.y + convert.origin.y), size: convert.size)
@@ -318,6 +403,22 @@
                     imageLoadOperations[index] = imageLoadOperation
                 }
             }
+        }
+        
+        private func customAttributeForDetailsVC(tweet: ViewModelTweet, complete: @escaping (_ data: NSMutableAttributedString) -> ()) {
+            let text = tweet.text
+            let attribute = NSMutableAttributedString(attributedString: text)
+            attribute.beginEditing()
+            attribute.enumerateAttribute(NSFontAttributeName, in: NSRange(location: 0, length: text.length), using: { (value, range, stop) in
+                if let oldFont = value as? UIFont {
+                    let newFont = oldFont.withSize(14.5)
+                    attribute.removeAttribute(NSFontAttributeName, range: range)
+                    attribute.addAttribute(NSFontAttributeName, value: newFont, range: range)
+                }
+                //stop.pointee = true
+            })
+            attribute.endEditing()
+            complete(attribute)
         }
         
         func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {

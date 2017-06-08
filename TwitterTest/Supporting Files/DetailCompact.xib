@@ -81,7 +81,6 @@
                 <constraints>
                     <constraint firstAttribute="trailingMargin" secondItem="cYW-mm-Rr7" secondAttribute="trailing" constant="11" id="2fG-3k-YhP"/>
                     <constraint firstAttribute="leadingMargin" secondItem="Lqo-gb-LYc" secondAttribute="leading" id="61P-qw-Vz1"/>
-                    <constraint firstAttribute="bottomMargin" secondItem="Lqo-gb-LYc" secondAttribute="bottom" constant="0.5" id="6k3-Fg-c2l"/>
                     <constraint firstItem="paK-4m-i24" firstAttribute="leading" secondItem="LY0-1O-o1R" secondAttribute="trailing" constant="11" id="Daz-Gw-cwb"/>
                     <constraint firstItem="Lqo-gb-LYc" firstAttribute="centerY" secondItem="SWK-tL-pWN" secondAttribute="centerY" id="F6F-Km-jc0"/>
                     <constraint firstItem="FXo-Fv-iBG" firstAttribute="top" secondItem="AsH-Nz-Oem" secondAttribute="topMargin" constant="10" id="FhR-wL-e8g"/>
@@ -96,6 +95,7 @@
                     <constraint firstItem="cYW-mm-Rr7" firstAttribute="leading" secondItem="LY0-1O-o1R" secondAttribute="trailing" constant="11" id="njZ-03-GWH"/>
                     <constraint firstItem="SWK-tL-pWN" firstAttribute="top" secondItem="paK-4m-i24" secondAttribute="bottom" constant="14" id="v7W-Yy-pF0"/>
                     <constraint firstItem="Q7u-AE-uDL" firstAttribute="top" secondItem="cYW-mm-Rr7" secondAttribute="bottom" constant="14" id="x43-63-Ioa"/>
+                    <constraint firstAttribute="bottom" secondItem="SWK-tL-pWN" secondAttribute="bottom" constant="8" id="xNI-Kk-x02"/>
                 </constraints>
             </tableViewCellContentView>
             <color key="backgroundColor" red="0.98039215690000003" green="0.98039215690000003" blue="0.98039215690000003" alpha="1" colorSpace="calibratedRGB"/>

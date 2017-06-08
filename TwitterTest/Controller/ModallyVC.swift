@@ -24,14 +24,19 @@ enum VarietyModally {
     case fourBtn
     case reply
     case showMute
+    case settings
+    case settingsDetailOfMe
+    case settingsDetail
+    case settingsProfile
+    
 }
 
 class ModallyVC: UIViewController {
     
+    @IBOutlet weak var fourthBtn: UIButton!
     @IBOutlet weak var thirdBtn: UIButton!
     @IBOutlet weak var secondBtn: UIButton!
     @IBOutlet weak var cancelBtn: UIButton!
-    @IBOutlet weak var fourthBtn: UIButton!
     
     let dis = DisposeBag()
     var delegateModally: ModallyDelegate?
@@ -40,6 +45,8 @@ class ModallyVC: UIViewController {
     var variety: VarietyModally?
     var tweet: ViewModelTweet?
     var user: ModelUser?
+    
+    var index: IndexPath?
     
     var imageMiniature: UIImage?
     var image: UIImage?
@@ -53,25 +60,25 @@ class ModallyVC: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         switch self.variety! {
-        case .showMute:
+        case .showMute, .settingsDetail:
             self.thirdBtn.isHidden = true
             self.fourthBtn.isHidden = true
-        case let btn where btn != .fourBtn:
-            self.fourthBtn.isHidden = true
-        default:
+        case .fourBtn, .settingsProfile:
             break
+        default:
+            self.fourthBtn.isHidden = true
         }
         
-        //        if self.variety! != .fourBtn {
-        //            self.fourBtn.isHidden = true
-        //        }
-        
-        fourthBtn.rx.tap.asObservable().subscribe(onNext: { [unowned self] _ in
-            switch self.variety! {
+        fourthBtn.rx.tap.asObservable().subscribe(onNext: { [weak self] _ in
+            guard let s = self else { return }
+            switch s.variety! {
             case .fourBtn:
-                self.dismiss(animated: true, completion: {
-                    self.user?.userData.value = UserData.TapSettingsBtn(user: self.user!, modal: false, showMute: false, publicReply: true, mute: false, follow: false)
+                s.dismiss(animated: true, completion: {
+                    s.user?.userData.value = UserData.TapSettingsBtn(user: s.user!, modal: false, showMute: false, publicReply: true, mute: false, follow: false)
                 })
+            case .settingsProfile:
+                s.dismiss(animated: true, completion: nil)
+                s.tweet!.cellData.value = CellData.Settings(index: s.index!, tweet: s.tweet!, delete: true, viewDetail: false, viewRetweets: false, modal: false)
             default:
                 break
             }
@@ -91,6 +98,12 @@ class ModallyVC: UIViewController {
                 self.dismiss(animated: true, completion: {
                     self.tweet!.cellData.value = CellData.Reply(tweet: self.tweet!, modal: false, replyAll: false)
                 })
+            case .settingsDetailOfMe:
+                self.dismiss(animated: true, completion: nil)
+                self.tweet!.cellData.value = CellData.Settings(index: self.index!, tweet: self.tweet!, delete: true, viewDetail: false, viewRetweets: false, modal: false)
+            case .settingsProfile, .settings:
+                self.dismiss(animated: true, completion: nil)
+                self.tweet!.cellData.value = CellData.Settings(index: self.index!, tweet: self.tweet!, delete: false, viewDetail: true, viewRetweets: false, modal: false)
             default:
                 break
             }
@@ -115,23 +128,27 @@ class ModallyVC: UIViewController {
                 self.dismiss(animated: true, completion: {
                     self.user?.userData.value = UserData.TapSettingsBtn(user: self.user!, modal: false, showMute: true, publicReply: false, mute: false, follow: false)
                 })
+            case .settings, .settingsProfile, .settingsDetailOfMe, .settingsDetail:
+                
+                self.dismiss(animated: true, completion: nil)
+                self.tweet!.cellData.value = CellData.Settings(index: self.index!, tweet: self.tweet!, delete: false, viewDetail: false, viewRetweets: true, modal: false)
             default:
                 break
-                
             }
         }).addDisposableTo(dis)
         cancelBtn.rx.tap.asObservable().subscribe(onNext: {
             guard let type = self.variety else { return }
-            if type != .reply {
-                self.dismiss(animated: true, completion: nil)
-            } else {
-                self.dismiss(animated: true, completion: {
-                    self.tweet?.replyBtn.onNext(false)
-                })
+            switch type {
+            case .settingsProfile, .settings, .settingsDetailOfMe, .settingsDetail:
+                self.tweet?.settingsBtn.onNext(false)
+            case .reply:
+                self.tweet?.replyBtn.onNext(false)
+            default:
+                break
             }
+            self.dismiss(animated: true, completion: nil)
         }).addDisposableTo(dis)
     }
-    
 }
 
 extension ModallyVC: UIImagePickerControllerDelegate, UINavigationControllerDelegate {

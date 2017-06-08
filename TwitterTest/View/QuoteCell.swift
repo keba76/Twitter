@@ -13,7 +13,6 @@ import SDWebImage
 class QuoteCell: UITableViewCell {
     
     @IBOutlet weak var userPic: UIImageView!
-    @IBOutlet weak var userPicBack: UIView!
     @IBOutlet weak var userName: UILabel!
     @IBOutlet weak var userScreenName: UILabel!
     @IBOutlet weak var tweetContentText: UILabel!
@@ -23,6 +22,7 @@ class QuoteCell: UITableViewCell {
     @IBOutlet weak var retweetBtn: DOFavoriteButton!
     @IBOutlet weak var favoriteBtn: DOFavoriteButton!
     @IBOutlet weak var replyBtn: DOFavoriteButton!
+    @IBOutlet weak var settingsBtn: DOFavoriteButton!
     @IBOutlet weak var retweetedLbl: UILabel!
     
     @IBOutlet weak var logoHeightConstraint: NSLayoutConstraint!
@@ -114,6 +114,13 @@ class QuoteCell: UITableViewCell {
             }.addDisposableTo(self.dis)
         
         DispatchQueue.global().async {
+            tweet.settingsBtn
+                .asObservable()
+                .observeOn(MainScheduler.instance)
+                .bindNext { [weak self] data in
+                    guard let s = self else { return }
+                    s.settingsBtn.isSelected = data
+                }.addDisposableTo(self.dis)
             
             tweet.replyBtn
                 .asObservable()
@@ -158,7 +165,7 @@ class QuoteCell: UITableViewCell {
                     if data > 0 { dataString = String(data) }
                     s.favoriteLbl.text = dataString
                 }.addDisposableTo(self.dis)
-
+            
             self.retweetBtn.rx.tap
                 .observeOn(MainScheduler.instance)
                 .subscribe { [weak self] _ in
@@ -204,6 +211,15 @@ class QuoteCell: UITableViewCell {
                     } else {
                         tweet.cellData.value = tweet.userMentions.count > 0 || tweet.retweetTweetID != nil ? CellData.Reply(tweet: tweet, modal: true, replyAll: false) : CellData.Reply(tweet: tweet, modal: false, replyAll: false)
                     }
+                }.addDisposableTo(self.dis)
+            
+            self.settingsBtn.rx.tap
+                .observeOn(MainScheduler.instance)
+                .bindNext { [weak self] _ in
+                    guard let s = self else { return }
+                    if !s.settingsBtn.isSelected { s.settingsBtn.select() }
+                    tweet.settingsBtn.onNext(true)
+                    tweet.cellData.value = CellData.Settings(index: s.indexPath!, tweet: tweet, delete: false, viewDetail: false, viewRetweets: false, modal: true)
                 }.addDisposableTo(self.dis)
             
             tapUserPic.rx.event

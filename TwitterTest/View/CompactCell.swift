@@ -21,6 +21,7 @@ class CompactCell: UITableViewCell {
     @IBOutlet weak var retweetBtn: DOFavoriteButton!
     @IBOutlet weak var favoriteBtn: DOFavoriteButton!
     @IBOutlet weak var replyBtn: DOFavoriteButton!
+    @IBOutlet weak var settingsBtn: DOFavoriteButton!
     @IBOutlet weak var retweetedLbl: UILabel!
     
     @IBOutlet weak var logoHeightConstraint: NSLayoutConstraint!
@@ -74,6 +75,14 @@ class CompactCell: UITableViewCell {
         
         
         DispatchQueue.global().async {
+            tweet.settingsBtn
+                .asObservable()
+                .observeOn(MainScheduler.instance)
+                .bindNext { [weak self] data in
+                    guard let s = self else { return }
+                    s.settingsBtn.isSelected = data
+                }.addDisposableTo(self.dis)
+            
             tweet.replyBtn
                 .asObservable()
                 .observeOn(MainScheduler.instance)
@@ -165,6 +174,15 @@ class CompactCell: UITableViewCell {
                     } else {
                         tweet.cellData.value = tweet.userMentions.count > 0 || tweet.retweetTweetID != nil ? CellData.Reply(tweet: tweet, modal: true, replyAll: false) : CellData.Reply(tweet: tweet, modal: false, replyAll: false)
                     }
+                }.addDisposableTo(self.dis)
+            
+            self.settingsBtn.rx.tap
+                .observeOn(MainScheduler.instance)
+                .bindNext { [weak self] _ in
+                    guard let s = self else { return }
+                    if !s.settingsBtn.isSelected { s.settingsBtn.select() }
+                    tweet.settingsBtn.onNext(true)
+                    tweet.cellData.value = CellData.Settings(index: s.indexPath!, tweet: tweet, delete: false, viewDetail: false, viewRetweets: false, modal: true)
                 }.addDisposableTo(self.dis)
             
             tapUserPic.rx.event

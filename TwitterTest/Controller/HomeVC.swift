@@ -234,8 +234,8 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
     func barbuttonReply() {
         let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main).instantiateViewController(withIdentifier: "ReplyAndNewTweet") as! UINavigationController
         if let controller = storyboard.viewControllers.first as? ReplyAndNewTweetVC {
-            let user = Profile.account
-            user?.screenName = ""
+            //            let user = Profile.account
+            //            user?.screenName = ""
             controller.userReply = nil
             self.present(storyboard, animated: true, completion: nil)
         }
@@ -382,6 +382,70 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
                     }
                 }
             }
+        case let .Settings(index, twee, delete, viewDetail, viewRetweets, modal):
+            if modal {
+                guard let userName = Profile.account?.screenName else { return }
+                if twee.userScreenName == "@\(userName)" {
+                    let controller = UIStoryboard(name: "Main", bundle: Bundle.main).instantiateViewController(withIdentifier: "ModallyVC") as! ModallyVC
+                    controller.transitioningDelegate = self
+                    controller.modalPresentationStyle = .custom
+                    controller.variety = VarietyModally.settingsProfile
+                    controller.tweet = twee
+                    controller.index = index
+                    present(controller, animated: true, completion: nil)
+                    controller.fourthBtn.setImage(UIImage(named: "delete"), for: .normal)
+                    controller.thirdBtn.setImage(UIImage(named: "viewDetail"), for: .normal)
+                    controller.secondBtn.setImage(UIImage(named: "viewRetweets"), for: .normal)
+                } else {
+                    let controller = UIStoryboard(name: "Main", bundle: Bundle.main).instantiateViewController(withIdentifier: "ModallyVC") as! ModallyVC
+                    controller.transitioningDelegate = self
+                    controller.modalPresentationStyle = .custom
+                    controller.variety = VarietyModally.settings
+                    controller.tweet = twee
+                    controller.index = index
+                    present(controller, animated: true, completion: nil)
+                    controller.thirdBtn.setImage(UIImage(named: "viewDetail"), for: .normal)
+                    controller.secondBtn.setImage(UIImage(named: "viewRetweets"), for: .normal)
+                    
+                }
+                
+            } else {
+                twee.settingsBtn.onNext(false)
+                switch true {
+                case delete:
+                    TwitterClient.swifter.destroyTweet(forID: twee.tweetID)
+                    self.tableView.beginUpdates()
+                    self.heightCell.remove(at: index.row)
+                    self.tweet!.remove(at: index.row)
+                    self.tableView.deleteRows(at: [index], with: .bottom)
+                    self.tableView.endUpdates()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8, execute: { self.tableView.reloadData() })
+                case viewDetail:
+                    let controller = UIStoryboard(name: "Main", bundle: Bundle.main).instantiateViewController(withIdentifier: "DetailsVC") as! DetailsVC
+                    customAttributeForDetailsVC(tweet: twee, complete: { data in
+                        controller.attributeText = data
+                        controller.tweet = twee
+                        controller.indexPath = index
+                    })
+                    SDWebImageManager.shared().downloadImage(with: twee.userAvatar, progress: { (_, _) in }, completed: { (image, error, cache, _, _) in
+                        twee.userPicImage.onNext(image!)
+                    })
+                    if let url = twee.mediaImageURLs.first {
+                        SDWebImageManager.shared().downloadImage(with: url, progress: { (_, _) in }, completed: { (image, error, cache, _, _) in
+                            twee.image.onNext(image!)
+                        })
+                    }
+                    self.navigationItem.title = "Timeline"
+                    self.navigationController?.pushViewController(controller, animated: true)
+                case viewRetweets:
+                    let controller = UIStoryboard(name: "Main", bundle: Bundle.main).instantiateViewController(withIdentifier: "FollowersAndFollowingVC") as! FollowersAndFollowingVC
+                    controller.tweetID = twee.tweetID
+                    self.navigationItem.title = "Timeline"
+                    self.navigationController?.pushViewController(controller, animated: true)
+                default:
+                    break
+                }
+            }
         case let .MediaScale(index, convert):
             var frameCell = self.tableView.rectForRow(at: (index))
             frameCell = CGRect(origin: CGPoint(x: frameCell.origin.x + convert.origin.x, y: frameCell.origin.y + convert.origin.y), size: convert.size)
@@ -400,9 +464,21 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
             customAttributeForDetailsVC(tweet: tweet, complete: { data in
                 controller.attributeText = data
                 controller.tweet = tweet
+                controller.quoteTap = true
             })
             SDWebImageManager.shared().downloadImage(with: tweet.userAvatar, progress: { (_, _) in }, completed: { (image, error, cache, _, _) in
-                tweet.userPicImage.onNext(image!)
+                if image == nil {
+                    let urlString = tweet.userAvatar.absoluteString
+                    if urlString.contains("profile_images") {
+                        let newUrl = urlString.replace(target: ".jpg", withString: "_bigger.jpg")
+                        SDWebImageManager.shared().downloadImage(with: URL(string: newUrl), progress: { (_ , _) in
+                        }) { (image, error, cache , _ , _) in
+                            tweet.userPicImage.onNext(image!)
+                        }
+                    }
+                } else {
+                    tweet.userPicImage.onNext(image!)
+                }
             })
             if let url = tweet.mediaImageURLs.first {
                 SDWebImageManager.shared().downloadImage(with: url, progress: { (_, _) in }, completed: { (image, error, cache, _, _) in
@@ -720,6 +796,7 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
                         customAttributeForDetailsVC(tweet: twee, complete: { data in
                             detail.attributeText = data
                             detail.tweet = twee
+                            detail.indexPath = index
                         })
                         self.navigationItem.title = "Timeline"
                     }
@@ -733,6 +810,7 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
                         customAttributeForDetailsVC(tweet: twee, complete: { data in
                             detail.attributeText = data
                             detail.tweet = twee
+                            detail.indexPath = index
                         })
                         self.navigationItem.title = "Timeline"
                     }
@@ -746,6 +824,7 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
                         customAttributeForDetailsVC(tweet: twee, complete: { data in
                             detail.attributeText = data
                             detail.tweet = twee
+                            detail.indexPath = index
                         })
                         self.navigationItem.title = "Timeline"
                     }

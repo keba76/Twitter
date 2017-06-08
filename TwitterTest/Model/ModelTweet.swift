@@ -19,6 +19,7 @@ class ModelTweet {
     let userName: String
     let userScreenName: String
     var replyBtn: Bool
+    var settingsBtn: Bool
     let retweetBtn: Bool
     let favoriteBtn: Bool
     var retweetCount: Int
@@ -44,6 +45,7 @@ class ModelTweet {
         userName = parse.username!
         userScreenName = "@" + parse.userScreenName!
         replyBtn = parse.replyBtn
+        settingsBtn = parse.settingsBtn
         retweetBtn = parse.retweetBtn
         favoriteBtn = parse.favoriteBtn
         retweetCount = parse.retweetCount
@@ -75,10 +77,14 @@ class ModelTweet {
         }
         
         var tempVia = parse.via!
+        if !tempVia.isEmpty {
         tempVia.characters.removeFirst(1)
         let rangeStart = tempVia.indexOf(">")
         let rangeEnd = tempVia.indexOf("<")
         via = tempVia.substringBetween(from: rangeStart, to: rangeEnd)
+        } else {
+            via = "Hadron Collider"
+        }
     
         // TEXTATTRIBUTED
         var displayURL = [String]()

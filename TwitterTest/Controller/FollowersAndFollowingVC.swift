@@ -25,6 +25,7 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
     var cursor: String?
     var typeUser: String?
     var user: ModelUser?
+    var tweetID: String?
     var userTemp: ModelUser?
     var users = [ModelUser]()
     //var followedYou = false
@@ -42,23 +43,32 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
         tableView.delegate = self
         tableView.dataSource = self
         tableView.tableFooterView = UIView()
+        instance = TwitterClient()
         
         if #available(iOS 10.0, *) { tableView.prefetchDataSource = self }
-        
-        self.navigationItem.title = self.typeUser == "Followers" ? "Followers" : "Followings"
-        
-        instance = TwitterClient()
-        reloadData()
-        tableView.contentInset.bottom += 11.0
-        
-        
-        let rectProgress = CGRect(x: view.bounds.width/2 - 20.0, y: view.bounds.height/2 - 20.0, width: 40.0, height: 40.0)
-        viewProgress = NVActivityIndicatorView(frame: rectProgress, type: .lineScalePulseOut, color: UIColor(red: 255/255, green: 0/255, blue: 104/255, alpha: 1), padding: 0)
-        
-        self.view.addSubview(self.viewProgress!)
-        self.view.bringSubview(toFront: self.viewProgress!)
-        self.viewProgress?.startAnimating()
-        
+        if tweetID != nil {
+            self.navigationItem.title = "Retweets"
+            let rectProgress = CGRect(x: view.bounds.width/2 - 20.0, y: view.bounds.height/2 - 20.0, width: 40.0, height: 40.0)
+            viewProgress = NVActivityIndicatorView(frame: rectProgress, type: .lineScalePulseOut, color: UIColor(red: 255/255, green: 0/255, blue: 104/255, alpha: 1), padding: 0)
+            
+            self.view.addSubview(self.viewProgress!)
+            self.view.bringSubview(toFront: self.viewProgress!)
+            self.viewProgress?.startAnimating()
+            reloadDataForRetweets()
+        } else {
+            self.navigationItem.title = self.typeUser == "Followers" ? "Followers" : "Followings"
+            
+            reloadData()
+            tableView.contentInset.bottom += 11.0
+            
+            
+            let rectProgress = CGRect(x: view.bounds.width/2 - 20.0, y: view.bounds.height/2 - 20.0, width: 40.0, height: 40.0)
+            viewProgress = NVActivityIndicatorView(frame: rectProgress, type: .lineScalePulseOut, color: UIColor(red: 255/255, green: 0/255, blue: 104/255, alpha: 1), padding: 0)
+            
+            self.view.addSubview(self.viewProgress!)
+            self.view.bringSubview(toFront: self.viewProgress!)
+            self.viewProgress?.startAnimating()
+        }
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -74,6 +84,27 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
         }
     }
     
+    func reloadDataForRetweets() {
+        instance?.getRetweets(tweetID: self.tweetID!, complited: { user in
+            self.viewProgress?.stopAnimating()
+            self.viewProgress?.removeFromSuperview()
+            self.viewProgress = nil
+            self.download = true
+            self.cursor = "0"
+            for x in user {
+                x.userData.asObservable().subscribe(onNext: { [weak self] data in
+                    guard let s = self else { return }
+                    s.varietyUserAction(data: data)
+                    }, onCompleted: {
+                }).addDisposableTo(self.dis)
+            }
+            
+            self.users.append(contentsOf: user)
+            let section = IndexSet(integer: 0)
+            self.tableView.reloadSections(section, with: .bottom)
+            
+        })
+    }
     
     func reloadData(append: Bool = false) {
         instance?.followersAndFollowing(userID: self.user!.id, type: typeUser!, cursor: cursor, complited: { user, cursor in
@@ -288,23 +319,23 @@ extension FollowersAndFollowingVC: UITableViewDataSourcePrefetching {
     
     func tableView(_ tableView: UITableView, didEndDisplaying cell: UITableViewCell, forRowAt indexPath: IndexPath) {
         
-            guard let imageLoadOperation = imageLoadOperations[indexPath] else { return }
-            imageLoadOperation.cancel()
-            imageLoadOperations.removeValue(forKey: indexPath)
-            
-            #if DEBUG_CELL_LIFECYCLE
-                print(String.init(format: "didEndDisplaying #%i", indexPath.row))
-            #endif
+        guard let imageLoadOperation = imageLoadOperations[indexPath] else { return }
+        imageLoadOperation.cancel()
+        imageLoadOperations.removeValue(forKey: indexPath)
+        
+        #if DEBUG_CELL_LIFECYCLE
+            print(String.init(format: "didEndDisplaying #%i", indexPath.row))
+        #endif
         
     }
     
     func tableView(_ tableView: UITableView, prefetchRowsAt indexPaths: [IndexPath]) {
         for indexPath in indexPaths {
             if let _ = imageLoadOperations[indexPath] { continue }
-                    let imageLoadOperation = ImageLoadOperation(url: users[indexPath.row].avatar!)
-                    imageLoadQueue.addOperation(imageLoadOperation)
-                    imageLoadOperations[indexPath] = imageLoadOperation
-              
+            let imageLoadOperation = ImageLoadOperation(url: users[indexPath.row].avatar!)
+            imageLoadQueue.addOperation(imageLoadOperation)
+            imageLoadOperations[indexPath] = imageLoadOperation
+            
             
             #if DEBUG_CELL_LIFECYCLE
                 print(String.init(format: "prefetchRowsAt #%i", indexPath.row))
@@ -314,7 +345,7 @@ extension FollowersAndFollowingVC: UITableViewDataSourcePrefetching {
     
     func tableView(_ tableView: UITableView, cancelPrefetchingForRowsAt indexPaths: [IndexPath]) {
         for indexPath in indexPaths {
-           if let _ = imageLoadOperations[indexPath] {
+            if let _ = imageLoadOperations[indexPath] {
                 imageLoadOperations[indexPath]!.cancel()
                 imageLoadOperations.removeValue(forKey: indexPath)
             }

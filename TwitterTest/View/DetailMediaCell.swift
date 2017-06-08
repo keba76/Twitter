@@ -38,10 +38,6 @@ class DetailMediaCell: UITableViewCell {
     var delegate: TwitterTableViewDelegate?
     
     func tweetSetConfigure(tweet: ViewModelTweet) {
-        
-        //tweetID = tweets.tweetID
-       // userPic.sd_setImage(with: tweet.userAvatar)
-        
         userPic.layer.cornerRadius = 5
         userPic.clipsToBounds = true
         userPic.layer.borderColor = UIColor.darkGray.cgColor
@@ -104,6 +100,18 @@ class DetailMediaCell: UITableViewCell {
             }.addDisposableTo(self.dis)
         
         DispatchQueue.global().async {
+            tweet.settingsBtn
+                .asObservable()
+                .observeOn(MainScheduler.instance)
+                .bindNext { [weak self] data in
+                    guard let s = self else { return }
+                    if data {
+                        s.settingsBtn.setImage(UIImage(named: "settingsBtnDetailPush"), for: .normal)
+                    } else {
+                        s.settingsBtn.setImage(UIImage(named: "settingsBtnDetail"), for: .normal)
+                    }
+                }.addDisposableTo(self.dis)
+            
             tweet.replyBtn
                 .asObservable()
                 .observeOn(MainScheduler.instance)
@@ -160,22 +168,6 @@ class DetailMediaCell: UITableViewCell {
                     s.favoriteLbl.text = dataString
                 }.addDisposableTo(self.dis)
             
-//            tweet.userPicImage
-//                .asObserver()
-//                .observeOn(MainScheduler.instance)
-//                .bindNext { [weak self] image in
-//                    guard let s = self else { return }
-//                    s.userPic.image = image
-//                }.addDisposableTo(self.dis)
-//            
-//            tweet.image
-//                .asObserver()
-//                .observeOn(MainScheduler.instance)
-//                .bindNext { [weak self] image in
-//                    guard let s = self else { return }
-//                    s.mediaImageView.image = image
-//                }.addDisposableTo(self.dis)
-            
             self.retweetBtn.rx.controlEvent(UIControlEvents.touchDown)
                 .observeOn(MainScheduler.instance)
                 .subscribe { [weak self] _ in
@@ -185,13 +177,13 @@ class DetailMediaCell: UITableViewCell {
                         tweet.retweeted = false
                         Profile.tweetID[tweet.tweetID] = false
                         Profile.reloadingProfileTweetsWhenRetweet -= 1
-                        //  tweet.cellData.value = CellData.Retweet(index: s.indexPath!)
+                        tweet.cellData.value = CellData.Retweet(index: s.indexPath!)
                     } else if tweet.user.id != Profile.account?.id {
                         s.retweetBtn.setImage(UIImage(named: "retweetBtnDetailBack"), for: .highlighted)
                         tweet.retweeted = true
                         Profile.tweetID[tweet.tweetID] = true
                         Profile.reloadingProfileTweetsWhenRetweet += 1
-                        //  tweet.cellData.value = CellData.Retweet(index: s.indexPath!)
+                        tweet.cellData.value = CellData.Retweet(index: s.indexPath!)
                     }}.addDisposableTo(self.dis)
             
             self.favoriteBtn.rx.controlEvent(UIControlEvents.touchDown)
@@ -202,10 +194,12 @@ class DetailMediaCell: UITableViewCell {
                         s.favoriteBtn.setImage(UIImage(named: "favoriteBtnDetailPushBack"), for: .highlighted)
                         tweet.favorited = false
                         Profile.tweetIDForFavorite[tweet.tweetID] = false
+                        tweet.cellData.value = CellData.Retweet(index: s.indexPath!)
                     } else  {
                         s.favoriteBtn.setImage(UIImage(named: "favoriteBtnDetailBack"), for: .highlighted)
                         tweet.favorited = true
                         Profile.tweetIDForFavorite[tweet.tweetID] = true
+                        tweet.cellData.value = CellData.Retweet(index: s.indexPath!)
                     }
                 }.addDisposableTo(self.dis)
             
@@ -217,6 +211,15 @@ class DetailMediaCell: UITableViewCell {
                     tweet.replyBtn.onNext(true)
                     Profile.reloadingProfileTweetsWhenReply += 1
                     tweet.cellData.value = tweet.userMentions.count > 0 || tweet.retweetTweetID != nil ? CellData.Reply(tweet: tweet, modal: true, replyAll: false) : CellData.Reply(tweet: tweet, modal: false, replyAll: false)
+                }.addDisposableTo(self.dis)
+            
+            self.settingsBtn.rx.controlEvent(UIControlEvents.touchDown)
+                .observeOn(MainScheduler.instance)
+                .bindNext { [weak self] _ in
+                    guard let s = self else { return }
+                    s.settingsBtn.setImage(UIImage(named: "settingsBtnDetailPushBack"), for: .highlighted)
+                    tweet.settingsBtn.onNext(true)
+                    tweet.cellData.value = CellData.Settings(index: s.indexPath!, tweet: tweet, delete: false, viewDetail: false, viewRetweets: false, modal: true)
                 }.addDisposableTo(self.dis)
             
             tapUserPic.rx.event

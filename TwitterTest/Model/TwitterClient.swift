@@ -22,6 +22,7 @@
     typealias complite = (_ data: [ViewModelTweet]) -> ()
     typealias compliteTweet = (_ data: ViewModelTweet) -> ()
     typealias compliteUser = (_ data: [ModelUser], _ cursor: String?) -> ()
+    typealias compliteRetweets = (_ data: [ModelUser]) -> ()
     
     func timeLine(maxID: String? = nil, complited: @escaping complite) {
         let failureHandler: (Error) -> Void = { error in
@@ -73,7 +74,7 @@
             guard let twee = json.array else { return }
             twee.forEach({ json in
                 if json["in_reply_to_status_id_str"].string == tweeID {
-                   // print(json)
+                    // print(json)
                     let tweetTemp = ViewModelTweet(modelTweet: ModelTweet(parse: Tweet(dict: json)))
                     for x in DetailsVC.tweetIDforDetailsVC {
                         if x.0 == tweetTemp.tweetID {
@@ -94,6 +95,21 @@
         }, failure: failureHandler)
     }
     
+    func getRetweets(tweetID: String, complited: @escaping compliteRetweets) {
+        let failureHandler: (Error) -> Void = { error in
+            print(error.localizedDescription)
+        }
+        TwitterClient.swifter.getRetweets(forTweetID: tweetID, count: 100, success: { json in
+            guard let user = json.array else { return }
+            let users = user
+                .map{ $0["user"] }
+                .map {User(dict: $0)}
+                .map{ModelUser(parse: $0)}
+            
+            complited(users)
+        }, failure: failureHandler)
+    }
+    
     func followersAndFollowing(userID: String, type: String, cursor: String? = nil,  complited: @escaping compliteUser) {
         let failureHandler: (Error) -> Void = { error in
             print(error.localizedDescription)
@@ -110,10 +126,10 @@
             TwitterClient.swifter.getUserFollowers(for: .id(userID), cursor: cursor, count: 20, success: { (json, _ , nextCursor) in
                 //print(json)
                 guard let users = json.array else { return }
-                var tempUsser = [ModelUser]()
-                users.forEach {tempUsser.append(ModelUser(parse: User(dict: $0)))}
+                var tempUser = [ModelUser]()
+                users.forEach {tempUser.append(ModelUser(parse: User(dict: $0)))}
                 //print(tempUsser)
-                complited(tempUsser, nextCursor)
+                complited(tempUser, nextCursor)
             }, failure: failureHandler)
         }
     }

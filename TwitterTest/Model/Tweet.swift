@@ -32,6 +32,7 @@ class Tweet {
     var retweetBtn = false
     var favoriteBtn = false
     var replyBtn = false
+    var settingsBtn = false
     var quote: Tweet?
     var via: String?
     var followingStatus = false

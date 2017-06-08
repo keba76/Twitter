@@ -33,6 +33,7 @@ class ViewModelTweet {
     let replyBtn: BehaviorSubject<Bool>
     var retweetBtn: BehaviorSubject<Bool>
     var favoriteBtn: BehaviorSubject<Bool>
+    var settingsBtn: BehaviorSubject<Bool>
     let user: ModelUser
     var mediaImageURLs: [URL]
     var quote: ViewModelTweet?
@@ -102,6 +103,7 @@ class ViewModelTweet {
         replyBtn = BehaviorSubject<Bool>(value: modelTweet.replyBtn)
         retweetBtn = BehaviorSubject<Bool>(value: modelTweet.retweetBtn)
         favoriteBtn = BehaviorSubject<Bool>(value: modelTweet.favoriteBtn)
+        settingsBtn = BehaviorSubject<Bool>(value: modelTweet.settingsBtn)
         user = ModelUser(parse: modelTweet.user)
         mediaImageURLs = modelTweet.mediaImageURLs ?? [URL]()
         retweetedName = modelTweet.retweetedName
@@ -135,6 +137,7 @@ class ViewModelTweet {
         replyBtn = viewModelTweet.replyBtn
         retweetBtn = BehaviorSubject<Bool>(value: try! viewModelTweet.retweetBtn.value())
         favoriteBtn = BehaviorSubject<Bool>(value: try! viewModelTweet.favoriteBtn.value())
+        settingsBtn = BehaviorSubject<Bool>(value: try! viewModelTweet.settingsBtn.value())
         user = viewModelTweet.user
         mediaImageURLs = viewModelTweet.mediaImageURLs
         retweetedName = viewModelTweet.retweetedName
@@ -197,5 +200,6 @@ enum CellData {
     case TextInvokeSelectRow(index: IndexPath)
     case Safari(url: String)
     case UserPicTap(tweet: ViewModelTweet)
+    case Settings(index: IndexPath, tweet: ViewModelTweet, delete: Bool, viewDetail: Bool, viewRetweets: Bool, modal: Bool)
     
 }
