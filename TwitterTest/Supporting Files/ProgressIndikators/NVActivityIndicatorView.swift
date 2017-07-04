@@ -40,6 +40,13 @@ public enum NVActivityIndicatorType: Int {
     case ballScaleMultiple
     /**
      
+     BallRotate.
+     
+     - returns: Instance of NVActivityIndicatorAnimationBallRotate.
+     */
+    case ballRotate
+    /**
+     
      LineScalePulseOut.
      
      - returns: Instance of NVActivityIndicatorAnimationLineScalePulseOut.
@@ -85,6 +92,8 @@ public enum NVActivityIndicatorType: Int {
             return NVActivityIndicatorAnimationBallSpinFadeLoader()
         case .lineSpinFadeLoader:
             return NVActivityIndicatorAnimationLineSpinFadeLoader()
+        case .ballRotate:
+            return NVActivityIndicatorAnimationBallRotate()
         }
     }
 }

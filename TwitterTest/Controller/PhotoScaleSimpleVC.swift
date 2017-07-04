@@ -46,7 +46,11 @@ class PhotoScaleSimpleVC: UIViewController {
     }
     
     func actionClose(_ tap: UITapGestureRecognizer) {
-        presentingViewController?.dismiss(animated: true, completion: nil)
+        if UIDevice.current.orientation.isLandscape {
+            presentingViewController?.dismiss(animated: true, completion: nil)
+        } else {
+            presentingViewController?.dismiss(animated: true, completion: nil)
+        }
     }
     
 }

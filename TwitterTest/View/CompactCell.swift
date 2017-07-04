@@ -23,10 +23,12 @@ class CompactCell: UITableViewCell {
     @IBOutlet weak var replyBtn: DOFavoriteButton!
     @IBOutlet weak var settingsBtn: DOFavoriteButton!
     @IBOutlet weak var retweetedLbl: UILabel!
+    @IBOutlet weak var speechBuble: UIImageView!
     
     @IBOutlet weak var logoHeightConstraint: NSLayoutConstraint!
     @IBOutlet weak var lblHeihtConstraint: NSLayoutConstraint!
     @IBOutlet weak var picBackConstraint: NSLayoutConstraint!
+    @IBOutlet weak var speechBubleConstraint: NSLayoutConstraint!
     
     var indexPath: IndexPath?
     
@@ -36,6 +38,20 @@ class CompactCell: UITableViewCell {
     override func prepareForReuse() { dis = DisposeBag() }
     
     func tweetSetConfigure(tweet: ViewModelTweet) {
+        if speechBuble != nil {
+            if tweet.tweetContainMentionsProfile, !tweet.replyConversation.isEmpty {
+                speechBuble.isHidden = false
+                speechBubleConstraint.constant = 16.0
+                speechBuble.image = UIImage(named: "speechBubleBlue")
+            } else if !tweet.replyConversation.isEmpty {
+                speechBuble.isHidden = false
+                speechBubleConstraint.constant = 16.0
+                speechBuble.image = UIImage(named: "speechBuble")
+            } else {
+                speechBuble.isHidden = true
+                speechBubleConstraint.constant = 0.0
+            }
+        }
         if logoHeightConstraint != nil {
             if tweet.retweetedType.isEmpty {
                 logoHeightConstraint.constant = 0
@@ -137,7 +153,7 @@ class CompactCell: UITableViewCell {
                         Profile.tweetID[tweet.tweetID] = false
                         Profile.reloadingProfileTweetsWhenRetweet -= 1
                         tweet.cellData.value = CellData.Retweet(index: s.indexPath!)
-                    } else if tweet.user.id != Profile.account?.id {
+                    } else if tweet.user.id != Profile.account.id {
                         s.retweetBtn.select()
                         tweet.retweeted = true
                         Profile.tweetID[tweet.tweetID] = true

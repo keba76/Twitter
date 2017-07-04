@@ -31,7 +31,7 @@ class FollowersAndFollowingCell: UITableViewCell {
     
     func userSetConfigure() {
         
-        user.userPicImage.asObservable().bindTo(userPic.rx.image).addDisposableTo(dis)
+        user.userPicImage.asObservable().observeOn(MainScheduler.instance).bindTo(userPic.rx.image).addDisposableTo(dis)
         
         userPic.layer.cornerRadius = 5
         userPic.clipsToBounds = true

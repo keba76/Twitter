@@ -47,8 +47,10 @@ class ProfileHeader: UIView {
             SDWebImageManager.shared().downloadImage(with: user?.imageBanner, options: .continueInBackground, progress: { (_ , _) in
                 self.backgroundImage.image = nil
             }, completed: { (image, error, cache, _ , _) in
-                self.backgroundImage.image = image
-                self.imageBanner = image
+                DispatchQueue.main.async {
+                    self.backgroundImage.image = image
+                    self.imageBanner = image
+                }
             })
         }
         
@@ -61,13 +63,17 @@ class ProfileHeader: UIView {
                     let newUrl = url.replace(target: ".jpg", withString: "_bigger.jpg")
                     SDWebImageManager.shared().downloadImage(with: URL(string: newUrl), progress: { (_ , _) in
                     }) { (image, error, cache , _ , _) in
+                        DispatchQueue.main.async {
                         self.profileImageView.image = image
                         self.images = image
+                        }
                     }
                 }
             } else {
+                DispatchQueue.main.async {
                 self.profileImageView.image = image
                 self.images = image
+                }
             }
         }
         

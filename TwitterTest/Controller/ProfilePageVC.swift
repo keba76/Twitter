@@ -38,17 +38,12 @@ class ProfilePageVC: UIPageViewController, UIPageViewControllerDataSource {
             controller.user = user!
             return controller
         }
-//        let controller = side == "left" ? UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "VC\(side)") as! ProfileLeftVC : UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "VC\(side)") as! ProfileRightVC
-//        if controller is ProfileLeftVC {
-//            
-//        }
     }
     
     func pageViewController(_ pageViewController: UIPageViewController, viewControllerBefore viewController: UIViewController) -> UIViewController? {
         guard let index = orderedVC.index(of: viewController) else { return nil }
         guard (index - 1) >= 0 else { return nil }
         return orderedVC[index - 1]
-        
     }
     
     func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
@@ -66,5 +61,4 @@ class ProfilePageVC: UIPageViewController, UIPageViewControllerDataSource {
         }
         return firstIndex
     }
-    
 }

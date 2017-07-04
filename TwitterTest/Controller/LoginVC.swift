@@ -102,24 +102,23 @@ class LoginVC: UIViewController, UIViewControllerTransitioningDelegate, UIWebVie
             }
             self.btn.spiner.spinnerColor = self.btn.spinnerColor
         } else if loadWeb {
-            var timer = false
+             let myGroup = DispatchGroup()
             let rectProgress = CGRect(x: self.view.bounds.width/2 - 67.0, y: self.view.bounds.height/2 - 67.0, width: 134.0, height: 134.0)
             self.progress = NVActivityIndicatorView(frame: rectProgress, type: .ballScale, color: UIColor.white, padding: 12)
             self.view.addSubview(self.progress!)
             self.view.bringSubview(toFront: self.progress!)
             self.progress?.startAnimating()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.3, execute: {
-                timer = true
-            })
+            myGroup.enter()
             TwitterClient.swifter.verifyAccountCredentials(includeEntities: false, skipStatus: true, success: { json in
                 let user = ModelUser(parse: User(dict: json))
                 Profile.account = user
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.4, execute: { myGroup.leave() })
                 TwitterClient.swifter.getUserFollowersIDs(for: .id(user.id), count: 5000, success: { (json, _ , nextCursor) in
                     Profile.arrayIdFollowers = json.array ?? []
                 }, failure: { error in print(error.localizedDescription)})
                 
             }, failure: { error in print(error.localizedDescription)})
-            
+            myGroup.enter()
             TwitterClient.swifter.getHomeTimeline(count: 12, maxID: nil, success: { json in
                 guard let twee = json.array else { return }
                 let viewModel =  twee
@@ -127,20 +126,14 @@ class LoginVC: UIViewController, UIViewControllerTransitioningDelegate, UIWebVie
                     .map {ModelTweet(parse: $0)}
                     .map {ViewModelTweet(modelTweet: $0)}
                 Profile.startTimeLine = viewModel
-                if timer {
-                    self.performSegue(withIdentifier: "LoginVC", sender: self)
-                    self.progress?.stopAnimating()
-                    self.progress?.removeFromSuperview()
-                    self.progress = nil
-                } else {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.3, execute: {
-                        self.performSegue(withIdentifier: "LoginVC", sender: self)
-                        self.progress?.stopAnimating()
-                        self.progress?.removeFromSuperview()
-                        self.progress = nil
-                    })
-                }
+                myGroup.leave()
             }, failure: { error in print(error.localizedDescription)})
+            myGroup.notify(queue: .main) {
+                self.performSegue(withIdentifier: "LoginVC", sender: self)
+                self.progress?.stopAnimating()
+                self.progress?.removeFromSuperview()
+                self.progress = nil
+            }
         }
     }
     

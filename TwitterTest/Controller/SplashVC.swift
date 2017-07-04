@@ -26,7 +26,7 @@ class SplashVC: UIViewController, SegueHandlerType {
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         
-       let fileURL = Credential.dataFileURL()
+        let fileURL = Credential.dataFileURL()
         let accountStore = ACAccountStore()
         let accountType = accountStore.accountType(withAccountTypeIdentifier: ACAccountTypeIdentifierTwitter)
         accountStore.requestAccessToAccounts(with: accountType, options: nil) { granted, error in
@@ -51,11 +51,11 @@ class SplashVC: UIViewController, SegueHandlerType {
                 
             } else if FileManager.default.fileExists(atPath: fileURL.path) {
                 DispatchQueue.main.async {
-                let rectProgress = CGRect(x: self.view.bounds.width/2 - 67.0, y: self.view.bounds.height/2 - 67.0, width: 134.0, height: 134.0)
-                self.progress = NVActivityIndicatorView(frame: rectProgress, type: .ballScale, color: UIColor.white, padding: 12)
-                self.view.addSubview(self.progress!)
-                self.view.bringSubview(toFront: self.progress!)
-                self.progress?.startAnimating()
+                    let rectProgress = CGRect(x: self.view.bounds.width/2 - 67.0, y: self.view.bounds.height/2 - 67.0, width: 134.0, height: 134.0)
+                    self.progress = NVActivityIndicatorView(frame: rectProgress, type: .ballScale, color: UIColor.white, padding: 12)
+                    self.view.addSubview(self.progress!)
+                    self.view.bringSubview(toFront: self.progress!)
+                    self.progress?.startAnimating()
                     let data = try! Data(contentsOf: fileURL)
                     NSKeyedUnarchiver.setClass(Credential.OAuthAccessToken.Coding.classForKeyedUnarchiver(), forClassName: "Credential")
                     let unarchiver = NSKeyedUnarchiver(forReadingWith: data)
@@ -92,42 +92,36 @@ class SplashVC: UIViewController, SegueHandlerType {
         }))
         self.present(alert, animated: true, completion: nil)
     }
-
+    
     private func getSomeDataAndSegue() {
-        var timer = false
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.3, execute: { timer = true })
+        let myGroup = DispatchGroup()
+        myGroup.enter()
         TwitterClient.swifter.verifyAccountCredentials(includeEntities: false, skipStatus: true, success: { json in
             let user = ModelUser(parse: User(dict: json))
             Profile.account = user
-    
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.4, execute: { myGroup.leave() })
             TwitterClient.swifter.getUserFollowersIDs(for: .id(user.id), count: 5000, success: { (json, _ , nextCursor) in
                 Profile.arrayIdFollowers = json.array ?? []
             }, failure: { error in
                 print(error.localizedDescription)})
         }, failure: { error in print(error.localizedDescription)})
-        
+        myGroup.enter()
         TwitterClient.swifter.getHomeTimeline(count: 30, maxID: nil, success: { json in
-          // print(json)
+            //print(json)
             guard let twee = json.array else { return }
             let viewModel =  twee
                 .map {Tweet(dict: $0)}
                 .map {ModelTweet(parse: $0)}
                 .map {ViewModelTweet(modelTweet: $0)}
             Profile.startTimeLine = viewModel
-            if timer {
-                self.performSegueWithIdentifier(segueIdentifier: .TabTaped, sender: self)
-                self.progress?.stopAnimating()
-                self.progress?.removeFromSuperview()
-                self.progress = nil
-            } else {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.3, execute: {
-                    self.performSegueWithIdentifier(segueIdentifier: .TabTaped, sender: self)
-                    self.progress?.stopAnimating()
-                    self.progress?.removeFromSuperview()
-                    self.progress = nil
-                })
-            }
+            myGroup.leave()
         }, failure: { error in print(error.localizedDescription)})
+        myGroup.notify(queue: .main) {
+            self.performSegueWithIdentifier(segueIdentifier: .TabTaped, sender: self)
+            self.progress?.stopAnimating()
+            self.progress?.removeFromSuperview()
+            self.progress = nil
+        }
     }
 }
 

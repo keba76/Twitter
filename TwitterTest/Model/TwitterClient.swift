@@ -21,6 +21,7 @@
     static let shareInstance = TwitterClient()
     typealias complite = (_ data: [ViewModelTweet]) -> ()
     typealias compliteTweet = (_ data: ViewModelTweet) -> ()
+    typealias compliteConversation = (_ data: ViewModelTweet?) -> ()
     typealias compliteUser = (_ data: [ModelUser], _ cursor: String?) -> ()
     typealias compliteRetweets = (_ data: [ModelUser]) -> ()
     
@@ -110,6 +111,35 @@
         }, failure: failureHandler)
     }
     
+    func getMentions(maxID: String? = nil, complited: @escaping complite) {
+        let failureHandler: (Error) -> Void = { error in
+            print(error.localizedDescription)
+        }
+        TwitterClient.swifter.getMentionsTimlineTweets(count: 42, maxID: maxID, success: { json in
+            guard let twee = json.array else { return }
+            print(twee)
+            var viewModel =  twee
+                .map {Tweet(dict: $0)}
+                .map {ModelTweet(parse: $0)}
+                .map {ViewModelTweet(modelTweet: $0)}
+            if maxID != nil {
+                viewModel.removeFirst()
+                complited(viewModel)
+            } else { complited(viewModel) }
+        }, failure: failureHandler)
+        
+    }
+    
+    func getDataConversation(tweetID: String, complited: @escaping compliteConversation) {
+        let failureHandler: (Error) -> Void = { error in
+            complited(nil)
+        }
+        TwitterClient.swifter.getTweet(forID: tweetID, success: { json in
+            let tweet = ViewModelTweet(modelTweet: ModelTweet(parse: Tweet(dict: json)))
+            complited(tweet)
+        }, failure: failureHandler)
+    }
+    
     func followersAndFollowing(userID: String, type: String, cursor: String? = nil,  complited: @escaping compliteUser) {
         let failureHandler: (Error) -> Void = { error in
             print(error.localizedDescription)
@@ -134,22 +164,22 @@
         }
     }
     
-    func publishTweet(status: String?, media: Data?, complited: @escaping compliteTweet) {
+    func publishTweet(status: String?, media: Data?, publicReply: String?, complited: @escaping compliteTweet) {
         let failureHandler: (Error) -> Void = { error in
             print(error.localizedDescription)
         }
         if let pic = media, let text = status {
-            TwitterClient.swifter.postTweet(status: text, media: pic, success: { json in
+            TwitterClient.swifter.postTweet(status: text, media: pic, inReplyToStatusID: publicReply, success: { json in
                 let tweet = ViewModelTweet(modelTweet: ModelTweet(parse: Tweet(dict: json)))
                 complited(tweet)
             }, failure: failureHandler)
         } else if let pic = media {
-            TwitterClient.swifter.postTweet(status: "", media: pic, success: { json in
+            TwitterClient.swifter.postTweet(status: "", media: pic, inReplyToStatusID: publicReply, success: { json in
                 let tweet = ViewModelTweet(modelTweet: ModelTweet(parse: Tweet(dict: json)))
                 complited(tweet)
             }, failure: failureHandler)
         } else if let text = status {
-            TwitterClient.swifter.postTweet(status: text, success: { json in
+            TwitterClient.swifter.postTweet(status: text, inReplyToStatusID: publicReply, success: { json in
                 let tweet = ViewModelTweet(modelTweet: ModelTweet(parse: Tweet(dict: json)))
                 complited(tweet)
             }, failure: failureHandler)

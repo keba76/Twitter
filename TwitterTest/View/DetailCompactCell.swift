@@ -52,21 +52,25 @@ class DetailCompactCell: UITableViewCell {
         traillingLblRetweet.constant = 10.0
         if let value = try? tweet.retweetCount.value(), value > 0 {
             retweetLbl.text = String(value)
+            retweetLbl.isHidden = false
+            imageRetweet.isHidden = false
         } else {
             retweetLbl.isHidden = true
             imageRetweet.isHidden = true
         }
         if let value = try? tweet.favoriteCount.value(), value > 0 {
             favoriteLbl.text = String(value)
+            favoriteLbl.isHidden = false
+            imageFavorite.isHidden = false
         } else {
             traillingLblRetweet.constant = 0
             favoriteLbl.isHidden = true
             imageFavorite.isHidden = true
         }
-        if favoriteLbl.isHidden, imageFavorite.isHidden {
+        if favoriteLbl.isHidden, retweetLbl.isHidden {
             topImageRetweetStack.constant = 0.0
         } else {
-            topImageRetweetStack.constant = 14.0
+            topImageRetweetStack.constant = 12.0
         }
         
         let tapUserPic = UITapGestureRecognizer()
@@ -163,13 +167,15 @@ class DetailCompactCell: UITableViewCell {
                         tweet.retweeted = false
                         Profile.tweetID[tweet.tweetID] = false
                         Profile.reloadingProfileTweetsWhenRetweet -= 1
-                        tweet.cellData.value = CellData.Retweet(index: s.indexPath!)
-                    } else if tweet.user.id != Profile.account?.id {
+                        tweet.cellData.value = CellData.RetweetForDetails(index: s.indexPath!, btn: "retweet")
+                        //tweet.cellData.value = CellData.Retweet(index: s.indexPath!)
+                    } else if tweet.user.id != Profile.account.id {
                         s.retweetBtn.setImage(UIImage(named: "retweetBtnDetailBack"), for: .highlighted)
                         tweet.retweeted = true
                         Profile.tweetID[tweet.tweetID] = true
                         Profile.reloadingProfileTweetsWhenRetweet += 1
-                        tweet.cellData.value = CellData.Retweet(index: s.indexPath!)
+                        tweet.cellData.value = CellData.RetweetForDetails(index: s.indexPath!, btn: "retweet")
+                        //tweet.cellData.value = CellData.Retweet(index: s.indexPath!)
                     }}.addDisposableTo(self.dis)
             
             self.favoriteBtn.rx.controlEvent(UIControlEvents.touchDown)
@@ -180,12 +186,14 @@ class DetailCompactCell: UITableViewCell {
                         s.favoriteBtn.setImage(UIImage(named: "favoriteBtnDetailPushBack"), for: .highlighted)
                         tweet.favorited = false
                         Profile.tweetIDForFavorite[tweet.tweetID] = false
-                        tweet.cellData.value = CellData.Retweet(index: s.indexPath!)
+                        tweet.cellData.value = CellData.RetweetForDetails(index: s.indexPath!, btn: "favorite")
+                        // tweet.cellData.value = CellData.Retweet(index: s.indexPath!)
                     } else  {
                         s.favoriteBtn.setImage(UIImage(named: "favoriteBtnDetailBack"), for: .highlighted)
                         tweet.favorited = true
                         Profile.tweetIDForFavorite[tweet.tweetID] = true
-                        tweet.cellData.value = CellData.Retweet(index: s.indexPath!)
+                        tweet.cellData.value = CellData.RetweetForDetails(index: s.indexPath!, btn: "favorite")
+                        //tweet.cellData.value = CellData.Retweet(index: s.indexPath!)
                     }
                 }.addDisposableTo(self.dis)
             

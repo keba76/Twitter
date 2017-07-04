@@ -16,7 +16,6 @@ extension String {
         return self.replacingOccurrences(of: target, with: withString, options: CompareOptions.literal, range: nil)
     }
     
-    
     func substringBetween(from: Int?, to: Int?) -> String {
         let startIndex: String.Index
         if let start = from, start >= 0 {
@@ -182,6 +181,16 @@ extension UITableView {
     func dequeueReusableCell<T: UITableViewCell>(indexPath: IndexPath) -> T where T: Reusable {
         return self.dequeueReusableCell(withIdentifier: T.reuseIdentifier, for: indexPath) as! T
     }
+    func performUpdate(_ update: ()->Void, completion: (()->Void)?) {
+        CATransaction.begin()
+        beginUpdates()
+        CATransaction.setCompletionBlock(completion)
+        // Table View update on row / section
+        update()
+        endUpdates()
+        CATransaction.commit()
+    }
+
 }
 
 

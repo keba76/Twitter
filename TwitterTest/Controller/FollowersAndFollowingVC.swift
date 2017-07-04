@@ -28,7 +28,6 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
     var tweetID: String?
     var userTemp: ModelUser?
     var users = [ModelUser]()
-    //var followedYou = false
     var userTapSettings: ModelUser?
     
     var viewProgress: NVActivityIndicatorView?
@@ -38,7 +37,7 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+        AppUtility.lockOrientation(.portrait)
         
         tableView.delegate = self
         tableView.dataSource = self
@@ -69,6 +68,11 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
             self.view.bringSubview(toFront: self.viewProgress!)
             self.viewProgress?.startAnimating()
         }
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        AppUtility.lockOrientation(.portrait)
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -175,13 +179,13 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
                 controller.user = user
                 controller.variety = VarietyModally.fourBtn
                 present(controller, animated: true, completion: nil)
-                controller.fourthBtn.setImage(UIImage(named: "publicReplyBtn"), for: .normal)
-                controller.secondBtn.setImage(UIImage(named: "muteBtn"), for: .normal)
+                controller.fourthBtn.setImage(UIImage(named: "btnModalyReplyPublic"), for: .normal)
+                controller.secondBtn.setImage(UIImage(named: "btnModalyMute"), for: .normal)
                 if !Profile.arrayIdFollowers.isEmpty, let id = Int(user.id)  {
                     if Profile.arrayIdFollowers.contains(where: {$0.integer == id}) {
-                        controller.thirdBtn.setImage(UIImage(named: "unfollowBtn"), for: .normal)
+                        controller.thirdBtn.setImage(UIImage(named: "btnModalyUnfollow"), for: .normal)
                     } else {
-                        controller.thirdBtn.setImage(UIImage(named: "followBtn"), for: .normal)
+                        controller.thirdBtn.setImage(UIImage(named: "btnModalyFollow"), for: .normal)
                     }
                 }
             } else {
@@ -190,14 +194,14 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
                     let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main).instantiateViewController(withIdentifier: "ReplyAndNewTweet") as! UINavigationController
                     if let controller = storyboard.viewControllers.first as? ReplyAndNewTweetVC {
                         var tempSet = Set<String>()
-                        tempSet.insert(user.screenName)
+                        tempSet.insert("@\(user.screenName)")
                         controller.user = tempSet
+                        controller.publicReply = true
                         self.present(storyboard, animated: true, completion: nil)
                     }
                 default:
                     break
                 }
-                
             }
         default:
             break

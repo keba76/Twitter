@@ -43,11 +43,15 @@ class QuoteCell: UITableViewCell {
     
     var indexPath: IndexPath?
     
+    var delegate: TwitterTableViewDelegate?
+    
     var dis = DisposeBag()
     override func prepareForReuse() { dis = DisposeBag() }
     
     func tweetSetConfigure(tweet: ViewModelTweet) {
         guard let twee = tweet.quote else { return }
+        
+        quoteView.layer.cornerRadius = 5.0
         
         if logoHeightConstraint != nil {
             if tweet.retweetedType.isEmpty {
@@ -61,7 +65,6 @@ class QuoteCell: UITableViewCell {
                 picBackConstraint.constant = 18
             }
         }
-        
         if twee.mediaImageURLs.isEmpty {
             imageQuote.image = nil
             widthQuoteConstraint.constant = 0
@@ -75,13 +78,14 @@ class QuoteCell: UITableViewCell {
             heightQuoteConstraint.constant = 60.0
             leadingQuoteConstraint.constant = 12.0
             bottomQuoteConstraint.constant = 12.0
-            stackQuoteConstraint.constant = 62.0
+            stackQuoteConstraint.constant = 56.0
         }
         tweetContentText.attributedText = tweet.text
         userNameQuote.text = twee.userName
         userScreenNameQuote.text = twee.userScreenName
         textQuote.attributedText = twee.text
         textQuote.lineBreakMode = NSLineBreakMode.byTruncatingTail
+        //textQuote.sizeToFit()
         
         userPic.layer.cornerRadius = 5
         userPic.clipsToBounds = true
@@ -176,7 +180,7 @@ class QuoteCell: UITableViewCell {
                         Profile.tweetID[tweet.tweetID] = false
                         Profile.reloadingProfileTweetsWhenRetweet -= 1
                         tweet.cellData.value = CellData.Retweet(index: s.indexPath!)
-                    } else if tweet.user.id != Profile.account?.id {
+                    } else if tweet.user.id != Profile.account.id {
                         s.retweetBtn.select()
                         tweet.retweeted = true
                         Profile.tweetID[tweet.tweetID] = true
@@ -192,10 +196,12 @@ class QuoteCell: UITableViewCell {
                         s.favoriteBtn.deselect()
                         tweet.favorited = false
                         Profile.tweetIDForFavorite[tweet.tweetID] = false
+                        s.delegate?.extensionProfVC(someTweetsData: SomeTweetsData(indexPath: s.indexPath, switchBool: false))
                     } else {
                         s.favoriteBtn.select()
                         tweet.favorited = true
                         Profile.tweetIDForFavorite[tweet.tweetID] = true
+                        s.delegate?.extensionProfVC(someTweetsData: SomeTweetsData(indexPath: s.indexPath, switchBool: true))
                     }
                 }.addDisposableTo(self.dis)
             
@@ -257,3 +263,22 @@ class QuoteCell: UITableViewCell {
         }
     }
 }
+//
+//class TopAlignedLabel: UILabel {
+////    override func drawText(in rect: CGRect) {
+////        if let stringText = text {
+////            let stringTextAsNSString = stringText as NSString
+////            let labelStringSize = stringTextAsNSString.boundingRect(with: CGSize(width: self.frame.width,height: CGFloat.greatestFiniteMagnitude),
+////                                                                    options: NSStringDrawingOptions.usesLineFragmentOrigin,
+////                                                                    attributes: [NSFontAttributeName: font],
+////                                                                    context: nil).size
+////            super.drawText(in: CGRect(x:0,y: 0,width: self.frame.width, height:ceil(labelStringSize.height)))
+////        } else {
+////            super.drawText(in: rect)
+////        }
+////    }
+//    
+//    }
+
+
+ //[super drawTextInRect:CGRectMake(0, 0, ceilf(CGRectGetWidth(self.frame)),MIN(ceilf(labelStringSize.height), self.frame.size.height))]

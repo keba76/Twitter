@@ -139,10 +139,10 @@
     }
 
     if (url.absoluteString.length == 0 || (!(options & SDWebImageRetryFailed) && isFailedUrl)) {
-        dispatch_main_sync_safe(^{
+        //dispatch_main_sync_safe(^{
             NSError *error = [NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorFileDoesNotExist userInfo:nil];
             completedBlock(nil, error, SDImageCacheTypeNone, YES, url);
-        });
+        //});
         return operation;
     }
 
@@ -162,11 +162,11 @@
 
         if ((!image || options & SDWebImageRefreshCached) && (![self.delegate respondsToSelector:@selector(imageManager:shouldDownloadImageForURL:)] || [self.delegate imageManager:self shouldDownloadImageForURL:url])) {
             if (image && options & SDWebImageRefreshCached) {
-                dispatch_main_sync_safe(^{
+                //dispatch_main_sync_safe(^{
                     // If image was found in the cache but SDWebImageRefreshCached is provided, notify about the cached image
                     // AND try to re-download it in order to let a chance to NSURLCache to refresh it from server.
                     completedBlock(image, nil, cacheType, YES, url);
-                });
+                //});
             }
 
             // download if no image or requested to refresh anyway, and download allowed by delegate
@@ -192,11 +192,11 @@
                     // if we would call the completedBlock, there could be a race condition between this block and another completedBlock for the same object, so if this one is called second, we will overwrite the new data
                 }
                 else if (error) {
-                    dispatch_main_sync_safe(^{
+                   // dispatch_main_sync_safe(^{
                         if (strongOperation && !strongOperation.isCancelled) {
                             completedBlock(nil, error, SDImageCacheTypeNone, finished, url);
                         }
-                    });
+                   // });
 
                     if (   error.code != NSURLErrorNotConnectedToInternet
                         && error.code != NSURLErrorCancelled
@@ -231,11 +231,11 @@
                                 [self.imageCache storeImage:transformedImage recalculateFromImage:imageWasTransformed imageData:(imageWasTransformed ? nil : data) forKey:key toDisk:cacheOnDisk];
                             }
 
-                            dispatch_main_sync_safe(^{
+                           // dispatch_main_sync_safe(^{
                                 if (strongOperation && !strongOperation.isCancelled) {
                                     completedBlock(transformedImage, nil, SDImageCacheTypeNone, finished, url);
                                 }
-                            });
+                           // });
                         });
                     }
                     else {
@@ -243,11 +243,11 @@
                             [self.imageCache storeImage:downloadedImage recalculateFromImage:NO imageData:data forKey:key toDisk:cacheOnDisk];
                         }
 
-                        dispatch_main_sync_safe(^{
+                        //dispatch_main_sync_safe(^{
                             if (strongOperation && !strongOperation.isCancelled) {
                                 completedBlock(downloadedImage, nil, SDImageCacheTypeNone, finished, url);
                             }
-                        });
+                        //});
                     }
                 }
 
@@ -271,24 +271,24 @@
             };
         }
         else if (image) {
-            dispatch_main_sync_safe(^{
+            //dispatch_main_sync_safe(^{
                 __strong __typeof(weakOperation) strongOperation = weakOperation;
                 if (strongOperation && !strongOperation.isCancelled) {
                     completedBlock(image, nil, cacheType, YES, url);
                 }
-            });
+            //});
             @synchronized (self.runningOperations) {
                 [self.runningOperations removeObject:operation];
             }
         }
         else {
             // Image not in cache and download disallowed by delegate
-            dispatch_main_sync_safe(^{
+           // dispatch_main_sync_safe(^{
                 __strong __typeof(weakOperation) strongOperation = weakOperation;
                 if (strongOperation && !weakOperation.isCancelled) {
                     completedBlock(nil, nil, SDImageCacheTypeNone, YES, url);
                 }
-            });
+            //});
             @synchronized (self.runningOperations) {
                 [self.runningOperations removeObject:operation];
             }

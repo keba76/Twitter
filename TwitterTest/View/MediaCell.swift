@@ -24,12 +24,16 @@ class MediaCell: UITableViewCell {
     @IBOutlet weak var replyBtn: DOFavoriteButton!
     @IBOutlet weak var settingsBtn: DOFavoriteButton!
     @IBOutlet weak var retweetedLbl: UILabel!
+    @IBOutlet weak var speechBuble: UIImageView!
     
     @IBOutlet weak var logoHeightConstraint: NSLayoutConstraint!
     @IBOutlet weak var lblHeihtConstraint: NSLayoutConstraint!
     @IBOutlet weak var picBackConstraint: NSLayoutConstraint!
+    @IBOutlet weak var speechBubleConstraint: NSLayoutConstraint!
     
     var indexPath: IndexPath?
+    
+    lazy var viewPlay: UIImageView = self.arrowImage()
     
     var delegate: TwitterTableViewDelegate?
     
@@ -37,6 +41,28 @@ class MediaCell: UITableViewCell {
     override func prepareForReuse() { dis = DisposeBag() }
     
     func tweetSetConfigure(tweet: ViewModelTweet) {
+        if speechBuble != nil {
+            if tweet.tweetContainMentionsProfile, !tweet.replyConversation.isEmpty {
+                
+                speechBuble.isHidden = false
+                speechBubleConstraint.constant = 16.0
+                speechBuble.image = UIImage(named: "speechBubleBlue")
+            } else if !tweet.replyConversation.isEmpty {
+                speechBuble.isHidden = false
+                speechBubleConstraint.constant = 16.0
+                speechBuble.image = UIImage(named: "speechBuble")
+            } else {
+                speechBuble.isHidden = true
+                speechBubleConstraint.constant = 0.0
+            }
+        }
+        
+        if tweet.videoURL != nil || tweet.instagramVideo != nil {
+            viewPlay.isHidden = false
+         viewPlay.image = UIImage(named: "playBtnAlpha")
+        } else {
+            viewPlay.isHidden = true
+        }
         if logoHeightConstraint != nil {
             if tweet.retweetedType.isEmpty {
                 logoHeightConstraint.constant = 0
@@ -74,6 +100,7 @@ class MediaCell: UITableViewCell {
         
         tweet.image
             .asObservable()
+            .observeOn(MainScheduler.instance)
             .bindNext { [weak self] image in
                 guard let s = self else { return }
                 s.mediaImageView.image = image
@@ -81,6 +108,7 @@ class MediaCell: UITableViewCell {
         
         tweet.userPicImage
             .asObserver()
+            .observeOn(MainScheduler.instance)
             .bindNext { [weak self] image in
                 guard let s = self else { return }
                 s.userPic.image = image
@@ -149,7 +177,7 @@ class MediaCell: UITableViewCell {
                         Profile.tweetID[tweet.tweetID] = false
                         Profile.reloadingProfileTweetsWhenRetweet -= 1
                         tweet.cellData.value = CellData.Retweet(index: s.indexPath!)
-                    } else if tweet.user.id != Profile.account?.id {
+                    } else if tweet.user.id != Profile.account.id {
                         s.retweetBtn.select()
                         tweet.retweeted = true
                         Profile.tweetID[tweet.tweetID] = true
@@ -229,8 +257,17 @@ class MediaCell: UITableViewCell {
                 .subscribe(onNext: {[weak self] _ in
                     guard let s = self else { return }
                     let instinctConvert = s.convert(s.mediaImageView.frame, to: s.contentView)
+                    
                     tweet.cellData.value = CellData.MediaScale(index: s.indexPath!, convert: instinctConvert)
                 }).addDisposableTo(self.dis)
         }
+    }
+    
+    func arrowImage() -> UIImageView {
+        let image = UIImageView(frame: CGRect(x: mediaImageView.bounds.center.x - 15, y: mediaImageView.bounds.center.y - 15, width: 30.0, height: 30.0))
+        image.alpha = 0.7
+        mediaImageView.addSubview(image)
+        return image
+        
     }
 }

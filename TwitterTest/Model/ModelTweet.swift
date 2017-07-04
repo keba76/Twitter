@@ -8,6 +8,7 @@
 
 import Foundation
 import RxSwift
+import Kanna
 
 class ModelTweet {
     let text: NSMutableAttributedString
@@ -28,6 +29,9 @@ class ModelTweet {
     var favorited: Bool
     var user: User
     var mediaImageURLs: [URL]?
+    var youtubeURL: URL?
+    var videoURL: URL?
+    var instagramVideo: URL?
     var quote: ModelTweet?
     var retweetedName: String
     var retweetTweetID: String?
@@ -37,6 +41,7 @@ class ModelTweet {
     var userMentions = [String]()
     var via: String
     var followingStatus: Bool
+    var replyConversation: String
     
     init(parse: Tweet) {
         
@@ -60,6 +65,7 @@ class ModelTweet {
         retweetedScreenName = parse.retweetedScreenName!
         userMentions = parse.userMentions
         followingStatus = parse.followingStatus
+        replyConversation = parse.replyConversation
         if parse.quote != nil {
             quote = ModelTweet(parse: parse.quote!)
             let text = quote!.text
@@ -67,9 +73,9 @@ class ModelTweet {
             attribute.beginEditing()
             attribute.enumerateAttribute(NSFontAttributeName, in: NSRange(location: 0, length: text.length), using: { (value, range, stop) in
                 if let oldFont = value as? UIFont {
-                let newFont = oldFont.withSize(12.5)
-                attribute.removeAttribute(NSFontAttributeName, range: range)
-                attribute.addAttribute(NSFontAttributeName, value: newFont, range: range)
+                    let newFont = oldFont.withSize(12.5)
+                    attribute.removeAttribute(NSFontAttributeName, range: range)
+                    attribute.addAttribute(NSFontAttributeName, value: newFont, range: range)
                 }
             })
             attribute.endEditing()
@@ -78,14 +84,24 @@ class ModelTweet {
         
         var tempVia = parse.via!
         if !tempVia.isEmpty {
-        tempVia.characters.removeFirst(1)
-        let rangeStart = tempVia.indexOf(">")
-        let rangeEnd = tempVia.indexOf("<")
-        via = tempVia.substringBetween(from: rangeStart, to: rangeEnd)
+            tempVia.characters.removeFirst(1)
+            let rangeStart = tempVia.indexOf(">")
+            let rangeEnd = tempVia.indexOf("<")
+            via = tempVia.substringBetween(from: rangeStart, to: rangeEnd)
         } else {
             via = "Hadron Collider"
         }
-    
+        if let extendedMedia = parse.extendedMedia {
+            for json in extendedMedia {
+                if json["type"].string == "video" || json["type"].string == "animated_gif" {
+                    let urlArrayVideo = json["video_info"]["variants"].array
+                    if let urlVideo = urlArrayVideo?.first?["url"].string {
+                        self.videoURL = URL(string: urlVideo)
+                    }
+                }
+            }
+        }
+        
         // TEXTATTRIBUTED
         var displayURL = [String]()
         var textParse = parse.text!
@@ -96,6 +112,27 @@ class ModelTweet {
                 textParse = textParse.replace(target: urlText!, withString: "")
                 let displayURLs = json["display_url"].string!
                 let urlExpanded = json["expanded_url"].string!
+                if urlExpanded.contains("instagram.com") {
+                    if let doc = HTML(url: URL(string: urlExpanded)! , encoding: .utf8) {
+                        if let image = doc.at_xpath("//meta[@property='og:image']/@content") {
+                            mediaImageURLs = [URL]()
+                            mediaImageURLs?.append(URL(string: image.text!)!)
+                        }
+                        if let video = doc.at_xpath("//meta[@property='og:video']/@content") {
+                            self.instagramVideo = URL(string: video.text!)
+                        }
+                    }
+                }
+                if urlExpanded.contains("youtube") {
+                    let rangeStart = urlExpanded.indexOf("=")
+                    let rangeEnd = urlExpanded.indexOf("&")
+                    let youtubeURLpart = urlExpanded.substringBetween(from: rangeStart, to: rangeEnd)
+                    let youtubeURLString = "https://img.youtube.com/vi/\(youtubeURLpart)/hqdefault.jpg"
+                    youtubeURL = URL(string: urlExpanded)
+                    mediaImageURLs = [URL]()
+                    mediaImageURLs?.append(URL(string: youtubeURLString)!)
+                    self.videoURL = youtubeURL
+                }
                 dictUrlsForSafari[displayURLs] = urlExpanded
                 displayURL.append(displayURLs)
             }
@@ -198,11 +235,11 @@ class ModelTweet {
             text.addAttribute(NSParagraphStyleAttributeName, value: style, range: NSRange(location: 0, length: text.length))
         }
         
-        if parse.retweetTweetID != nil, parse.retweetBtn, parse.retweetedName != Profile.account?.name{
+        if parse.retweetTweetID != nil, parse.retweetBtn, parse.retweetedName != Profile.account.name{
             retweetedType = "Retweeted by \(parse.retweetedName!) and You"
         } else if parse.retweetTweetID != nil {
             
-            retweetedType = parse.retweetedName == Profile.account?.name ? "Retweeted by You" : "Retweeted by \(parse.retweetedName!)"
+            retweetedType = parse.retweetedName == Profile.account.name ? "Retweeted by You" : "Retweeted by \(parse.retweetedName!)"
         } else if parse.retweetBtn {
             retweetedType = "Retweeted by You"
         } else {
@@ -217,6 +254,7 @@ class ModelUser {
     var avatar: URL?
     var name: String
     var screenName: String
+    var screenNameAt: String
     var location: String
     var followers: String
     var following: String
@@ -227,7 +265,7 @@ class ModelUser {
     var userPicImage: BehaviorSubject<UIImage>
     var userData: Variable<UserData>
     
-    init() { id = ""; name = ""; screenName = ""; location = ""; followers = ""; following = ""; description = ""; protected = false; followYou = false; userPicImage = BehaviorSubject<UIImage>(value: UIImage.getEmptyImageWithColor(color: UIColor.white)); userData =  Variable<UserData>(UserData.tempValue(action: false))}
+    init() { id = ""; name = ""; screenName = ""; screenNameAt = ""; location = ""; followers = ""; following = ""; description = ""; protected = false; followYou = false; userPicImage = BehaviorSubject<UIImage>(value: UIImage.getEmptyImageWithColor(color: UIColor.white)); userData =  Variable<UserData>(UserData.tempValue(action: false))}
     
     init(parse: User) {
         id = parse.id!
@@ -235,6 +273,7 @@ class ModelUser {
         avatar = parse.avatar!
         name = parse.name!
         screenName = parse.screenName!
+        screenNameAt = "@\(screenName)"
         location = parse.location!
         followers = parse.folowers!
         following = parse.following!

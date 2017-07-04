@@ -415,9 +415,9 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
                 [self.memCache setObject:diskImage forKey:key cost:cost];
             }
 
-            dispatch_async(dispatch_get_main_queue(), ^{
+            //dispatch_async(dispatch_get_main_queue(), ^{
                 doneBlock(diskImage, SDImageCacheTypeDisk);
-            });
+           // });
         }
     });
 

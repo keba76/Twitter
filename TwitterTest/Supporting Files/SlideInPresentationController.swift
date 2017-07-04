@@ -19,7 +19,6 @@ class SlideInPresentationController: UIPresentationController {
         self.keyBoard = keyboardHeight
         self.finallySize = finalSize
         super.init(presentedViewController: presentedViewController, presenting: presentingViewController)
-        
         setupDimmingView()
     }
     
@@ -83,19 +82,14 @@ class SlideInPresentationController: UIPresentationController {
         frame.origin.y = finallySize ? 0.0 : containerView!.frame.height - keyBoard - 40
         return frame
     }
-    
-
 }
-
 
 class SlideInPresentationAnimator: NSObject {
     
     let isPresentation: Bool
-    let initial: CGRect?
     
     init(isPresentation: Bool, initialFrame: CGRect? = nil) {
         self.isPresentation = isPresentation
-        self.initial = initialFrame
         super.init()
     }
 }
@@ -115,25 +109,36 @@ extension SlideInPresentationAnimator: UIViewControllerAnimatedTransitioning {
         
         let presentedFrame = transitionContext.finalFrame(for: controller)
         var dismissedFrame = presentedFrame
-        if let ini = initial {
-            dismissedFrame.origin.x = ini.origin.x
-            dismissedFrame.origin.y = ini.origin.y
-            dismissedFrame.size = ini.size
-        } else {
         
         dismissedFrame.origin.y = transitionContext.containerView.frame.size.height
-        }
         
         let initialFrame = isPresentation ? dismissedFrame : presentedFrame
         let finalFrame = isPresentation ? presentedFrame : dismissedFrame
         
-        let animationDuration = transitionDuration(using: transitionContext)
         controller.view.frame = initialFrame
-        UIView.animate(withDuration: animationDuration, delay:0.0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.3, animations: {
+        var duration: TimeInterval
+        var springWithDamping: CGFloat
+        var initialSpringVelocity: CGFloat
+        var option: UIViewAnimationOptions = []
+        
+        if self.isPresentation {
+            duration = transitionDuration(using: transitionContext)
+            springWithDamping = 0.7
+            initialSpringVelocity = 0.3
+        } else {
+            if UIDevice.current.orientation.isLandscape {
+                duration = 0.2
+            } else {
+                duration = 0.3
+            }
+            springWithDamping = 1.0
+            initialSpringVelocity = 1.0
+            option = .curveEaseIn
+        }
+        UIView.animate(withDuration: duration, delay: 0.0, usingSpringWithDamping: springWithDamping, initialSpringVelocity: initialSpringVelocity, options: option, animations: {
             controller.view.frame = finalFrame
         }) { finished in
             transitionContext.completeTransition(finished)
         }
     }
-    
 }

@@ -24,11 +24,14 @@ enum VarietyModally {
     case fourBtn
     case reply
     case showMute
+    case cancel
+    case removePic
     case settings
     case settingsDetailOfMe
     case settingsDetail
     case settingsProfile
-    
+    case imageLibrary
+    case makePhotoOrVideo
 }
 
 class ModallyVC: UIViewController {
@@ -38,9 +41,13 @@ class ModallyVC: UIViewController {
     @IBOutlet weak var secondBtn: UIButton!
     @IBOutlet weak var cancelBtn: UIButton!
     
+    @IBOutlet weak var heightFirstBtn: NSLayoutConstraint!
+    @IBOutlet weak var heightSecondBtn: NSLayoutConstraint!
+    @IBOutlet weak var heightThirdBnt: NSLayoutConstraint!
+    @IBOutlet weak var spaceBetweenFirstAndTwoBtn: NSLayoutConstraint!
+    
     let dis = DisposeBag()
     var delegateModally: ModallyDelegate?
-    
     
     var variety: VarietyModally?
     var tweet: ViewModelTweet?
@@ -48,17 +55,24 @@ class ModallyVC: UIViewController {
     
     var index: IndexPath?
     
-    var imageMiniature: UIImage?
-    var image: UIImage?
-    
-    lazy var imagePicker: UIImagePickerController = {
-        let picker = UIImagePickerController()
-        picker.delegate = self
-        return picker
-    }()
-    
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        fourthBtn.imageView?.contentMode = .scaleAspectFill
+        thirdBtn.imageView?.contentMode = .scaleAspectFill
+        secondBtn.imageView?.contentMode = .scaleAspectFill
+        cancelBtn.imageView?.contentMode = .scaleAspectFill
+        
+        if UIDevice.current.orientation == UIDeviceOrientation.landscapeLeft {
+            AppUtility.lockOrientation(.landscapeRight)
+        }
+        if UIDevice.current.orientation == UIDeviceOrientation.landscapeRight {
+            AppUtility.lockOrientation(.landscapeLeft)
+        }
+        if UIDevice.current.orientation == UIDeviceOrientation.portrait {
+            AppUtility.lockOrientation(.portrait)
+        }
+        
         switch self.variety! {
         case .showMute, .settingsDetail:
             self.thirdBtn.isHidden = true
@@ -87,12 +101,13 @@ class ModallyVC: UIViewController {
         thirdBtn.rx.tap.asObservable().subscribe(onNext: { [unowned self] _ in
             switch self.variety! {
             case .photo:
-                self.imagePicker.sourceType = .camera
-                self.present(self.imagePicker, animated: true, completion: nil)
+                self.dismiss(animated: true, completion: {
+                    self.delegateModally?.extensionModally(variety: VarietyModally.makePhotoOrVideo)
+                })
             case .pic:
                 //self.image = nil
                 self.dismiss(animated: true, completion: {
-                    self.delegateModally?.extensionModally()
+                    self.delegateModally?.extensionModally(variety: VarietyModally.removePic)
                 })
             case .reply:
                 self.dismiss(animated: true, completion: {
@@ -109,16 +124,15 @@ class ModallyVC: UIViewController {
             }
         }).addDisposableTo(dis)
         
-        
         secondBtn.rx.tap.asObservable().subscribe(onNext: { [unowned self] _ in
             switch self.variety! {
             case .photo:
-                self.imagePicker.sourceType = .photoLibrary
-                self.present(self.imagePicker, animated: true, completion: nil)
-            case .pic:
-                let width = (UIApplication.shared.windows.first?.bounds)!
                 self.dismiss(animated: true, completion: {
-                    self.delegateModally?.extensionModally(image:self.imageWithImage(image: self.image!, scaledToSize: CGSize(width: width.width, height: width.width * (self.image?.size.height)! / (self.image?.size.width)!)) , variety: VarietyModally.pic)
+                    self.delegateModally?.extensionModally(variety: VarietyModally.imageLibrary)
+                })
+            case .pic:
+                self.dismiss(animated: true, completion: {
+                    self.delegateModally?.extensionModally(variety: VarietyModally.pic)
                 })
             case .reply:
                 self.dismiss(animated: true, completion: {
@@ -142,29 +156,16 @@ class ModallyVC: UIViewController {
             case .settingsProfile, .settings, .settingsDetailOfMe, .settingsDetail:
                 self.tweet?.settingsBtn.onNext(false)
             case .reply:
+                Profile.reloadingProfileTweetsWhenReply -= 1
                 self.tweet?.replyBtn.onNext(false)
             default:
                 break
             }
-            self.dismiss(animated: true, completion: nil)
+            self.dismiss(animated: true, completion: {
+                self.delegateModally?.extensionModally(variety: VarietyModally.cancel)
+            })
         }).addDisposableTo(dis)
     }
 }
 
-extension ModallyVC: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-    
-    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String : Any]) {
-        image = info[UIImagePickerControllerOriginalImage] as? UIImage
-        self.dismiss(animated: true, completion: {
-            self.dismiss(animated: true, completion: {
-                self.delegateModally?.extensionModally(image: self.image)
-            })
-        })
-    }
-    
-    
-    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-        self.dismiss(animated: true, completion: nil)
-    }
-}
 

@@ -4,6 +4,7 @@ PODS:
   - cocoa-oauth (0.0.1):
     - NSData+Base64 (~> 1.0)
   - ISO8601 (0.6.0)
+  - Kanna (2.1.1)
   - NSData+Base64 (1.0.0)
   - ReactiveCocoa (4.2.2):
     - Result (~> 2.0)
@@ -25,6 +26,7 @@ PODS:
     - SimpleAuth/Core
 
 DEPENDENCIES:
+  - Kanna (~> 2.1.0)
   - RxCocoa (~> 3.0)
   - RxSwift (~> 3.0)
   - SDWebImage (~> 3.8)
@@ -35,6 +37,7 @@ SPEC CHECKSUMS:
   CMDQueryStringSerialization: 4bb0a2f5e7d8d8678d911d88072274952cbef4e5
   cocoa-oauth: 1200a2170276a62a975f2786d505dab6e2db1fa8
   ISO8601: d3ea3ba9b752820cf92c6b47a9ee327e9f0e13fc
+  Kanna: 9b4b086c218703f2b94f5b21a466217dd2f9332e
   NSData+Base64: 4e84902c4db907a15673474677e57763ef3903e4
   ReactiveCocoa: 72263e7ac0770c274617ccd345e01049d0ca38ae
   Result: 18e1a7597fbcca5923c565b40a25a98afafdee02
@@ -43,6 +46,6 @@ SPEC CHECKSUMS:
   SDWebImage: 098e97e6176540799c27e804c96653ee0833d13c
   SimpleAuth: bc7d594f90711a7e6ef7624dce5aa8c8b09770ab
 
-PODFILE CHECKSUM: a4287c96cce5b831861954561ced340801414e37
+PODFILE CHECKSUM: 04c9f8b1b2f5feaf98ce00e26f1ea350fd7c03b8
 
 COCOAPODS: 1.2.0

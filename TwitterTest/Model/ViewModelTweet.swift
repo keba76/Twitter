@@ -13,7 +13,7 @@ import RxCocoa
 //private extension Reactive where Base: UIImageView {
 //    var imageTemp: UIBindingObserver<Base, UIImage> {
 //        return UIBindingObserver(UIElement: base) { x, y in
-//            x.image = 
+//            x.image =
 //}
 //    }
 //}
@@ -36,6 +36,9 @@ class ViewModelTweet {
     var settingsBtn: BehaviorSubject<Bool>
     let user: ModelUser
     var mediaImageURLs: [URL]
+    var videoURL: URL?
+    var instagramVideo: URL?
+    var youtubeURL: URL?
     var quote: ViewModelTweet?
     var retweetedName: String
     var retweetTweetID: String?
@@ -43,12 +46,15 @@ class ViewModelTweet {
     var timeStamp: String
     var retweetedScreenName: String
     var userMentions = [String]()
+    var tweetContainMentionsProfile = false
     var cellData: Variable<CellData>
     var retweetCount: BehaviorSubject<Int>
     var image: BehaviorSubject<UIImage>
     var userPicImage: BehaviorSubject<UIImage>
     var via: String
+    var replyConversation: String
     var followingStatus: Bool
+    var checkEmptyTweet = false
     var retweeted: Bool {
         didSet {
             if retweeted {
@@ -62,11 +68,11 @@ class ViewModelTweet {
                 retweetCount.onNext(temp)
                 retweetBtn.onNext(false)
             }
-            if retweetTweetID != nil, try! retweetBtn.value(), retweetedName != Profile.account?.name{
+            if retweetTweetID != nil, try! retweetBtn.value(), retweetedName != Profile.account.name{
                 retweetedType = "Retweeted by \(retweetedName) and You"
             } else if retweetTweetID != nil {
                 
-                retweetedType = retweetedName == Profile.account?.name ? "Retweeted by You" : "Retweeted by \(retweetedName)"
+                retweetedType = retweetedName == Profile.account.name ? "Retweeted by You" : "Retweeted by \(retweetedName)"
             } else if try! retweetBtn.value() {
                 retweetedType = "Retweeted by You"
             } else {
@@ -112,11 +118,18 @@ class ViewModelTweet {
         timeStamp = modelTweet.timeStamp
         retweeted = modelTweet.retweeted
         favorited = modelTweet.favorited
+        videoURL = modelTweet.videoURL
+        instagramVideo = modelTweet.instagramVideo
+        youtubeURL = modelTweet.youtubeURL
         retweetCount = BehaviorSubject<Int>(value: modelTweet.retweetCount)
         favoriteCount = BehaviorSubject<Int>(value: modelTweet.favoriteCount)
         retweetedScreenName = modelTweet.retweetedScreenName
         userMentions = modelTweet.userMentions
+        if userMentions.contains(Profile.account.screenNameAt) {
+            tweetContainMentionsProfile = true
+        }
         via = modelTweet.via
+        replyConversation = modelTweet.replyConversation
         followingStatus = modelTweet.followingStatus
         if modelTweet.quote != nil {quote = ViewModelTweet(modelTweet: modelTweet.quote!)}
         cellData = Variable<CellData>(CellData.tempValue(action: false))
@@ -140,17 +153,22 @@ class ViewModelTweet {
         settingsBtn = BehaviorSubject<Bool>(value: try! viewModelTweet.settingsBtn.value())
         user = viewModelTweet.user
         mediaImageURLs = viewModelTweet.mediaImageURLs
+        videoURL = viewModelTweet.videoURL
+        instagramVideo = viewModelTweet.instagramVideo
+        youtubeURL = viewModelTweet.youtubeURL
         retweetedName = viewModelTweet.retweetedName
         retweetTweetID = viewModelTweet.retweetTweetID
         userAvatar = viewModelTweet.userAvatar
         timeStamp = viewModelTweet.timeStamp
         retweeted = viewModelTweet.retweeted
         favorited = viewModelTweet.favorited
+        tweetContainMentionsProfile = viewModelTweet.tweetContainMentionsProfile
         retweetCount = BehaviorSubject<Int>(value: try! viewModelTweet.retweetCount.value())
         favoriteCount = BehaviorSubject<Int>(value: try! viewModelTweet.favoriteCount.value())
         retweetedScreenName = viewModelTweet.retweetedScreenName
         userMentions = viewModelTweet.userMentions
         via = viewModelTweet.via
+        replyConversation = viewModelTweet.replyConversation
         followingStatus = viewModelTweet.followingStatus
         quote = viewModelTweet.quote
         cellData = Variable<CellData>(CellData.tempValue(action: false))
@@ -166,23 +184,23 @@ extension ViewModelTweet: Hashable {
     
     static func == (lhs: ViewModelTweet, rhs: ViewModelTweet) -> Bool {
         return lhs.tweetID == rhs.tweetID //&&
-//            lhs.retweetedType == rhs.retweetedType &&
-//            lhs.text == rhs.text &&
-//            lhs.tweetTime == rhs.tweetTime &&
-//            lhs.userName == rhs.userName &&
-//            lhs.userScreenName == rhs.userScreenName &&
-//        lhs.quote === rhs.quote &&
-//        lhs.favoriteBtn == rhs.favoriteBtn &&
-//        lhs.tweetTime == rhs.tweetTime &&
-//        lhs.replyBtn == rhs.replyBtn &&
-//        lhs.retweetBtn == rhs.retweetBtn &&
-//        lhs.favoriteBtn == rhs.favoriteBtn &&
-//        lhs.mediaImageURLs == rhs.mediaImageURLs &&
-//        lhs.retweetedName == rhs.retweetedName &&
-//        lhs.userAvatar == rhs.userAvatar &&
-//        lhs.timeStamp == rhs.timeStamp &&
-//        lhs.retweetedScreenName == rhs.retweetedScreenName &&
-//        lhs.userMentions == rhs.userMentions
+        //            lhs.retweetedType == rhs.retweetedType &&
+        //            lhs.text == rhs.text &&
+        //            lhs.tweetTime == rhs.tweetTime &&
+        //            lhs.userName == rhs.userName &&
+        //            lhs.userScreenName == rhs.userScreenName &&
+        //        lhs.quote === rhs.quote &&
+        //        lhs.favoriteBtn == rhs.favoriteBtn &&
+        //        lhs.tweetTime == rhs.tweetTime &&
+        //        lhs.replyBtn == rhs.replyBtn &&
+        //        lhs.retweetBtn == rhs.retweetBtn &&
+        //        lhs.favoriteBtn == rhs.favoriteBtn &&
+        //        lhs.mediaImageURLs == rhs.mediaImageURLs &&
+        //        lhs.retweetedName == rhs.retweetedName &&
+        //        lhs.userAvatar == rhs.userAvatar &&
+        //        lhs.timeStamp == rhs.timeStamp &&
+        //        lhs.retweetedScreenName == rhs.retweetedScreenName &&
+        //        lhs.userMentions == rhs.userMentions
         
         
         
@@ -193,6 +211,7 @@ extension ViewModelTweet: Hashable {
 enum CellData {
     case tempValue(action: Bool)
     case Retweet(index: IndexPath)
+    case RetweetForDetails(index: IndexPath, btn: String)
     case RetweetInProfile(index: IndexPath, convert: CGPoint)
     case Reply(tweet: ViewModelTweet, modal: Bool, replyAll: Bool)
     case MediaScale(index: IndexPath, convert: CGRect)

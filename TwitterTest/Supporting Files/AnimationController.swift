@@ -13,6 +13,13 @@ protocol ImageTransitionProtocol {
     func tranisitionCleanup()
     func imageWindowFrame() -> CGRect
 }
+//extension ImageTransitionProtocol {
+//    func tranisitionSetup() {}
+//    func imageWindowFrame() -> CGRect {
+//        return CGRect.zero
+//    }
+//    }
+
 
 class AnimationController: NSObject, UIViewControllerAnimatedTransitioning {
     
@@ -23,6 +30,7 @@ class AnimationController: NSObject, UIViewControllerAnimatedTransitioning {
     private var data: SomeTweetsData?
     private var frameImage: CGRect?
     private var frameBackImage: CGRect?
+    private var frameVideoTriangle: CGRect?
     private var secondImage: UIImage?
     private var cornerRadius = true
     
@@ -37,6 +45,11 @@ class AnimationController: NSObject, UIViewControllerAnimatedTransitioning {
         self.toDelegate = toDelegate
         self.alphaTabs = alphaTabs
         self.cornerRadius = data.cornerRadius
+        if data.frameVideoTriangle != CGRect.zero {
+            self.frameVideoTriangle = data.frameVideoTriangle
+        } else {
+            self.frameVideoTriangle = nil
+        }
         if let frameImage = data.frameImage, data.frameBackImage != CGRect.zero {
             self.frameImage = frameImage
             self.frameBackImage = data.frameBackImage
@@ -104,6 +117,15 @@ class AnimationController: NSObject, UIViewControllerAnimatedTransitioning {
         containerView.addSubview(AnimationController.screenViewTab!)
         }
         
+        var videoTriangle = UIImageView(frame: CGRect.zero)
+        if let frameVideo = self.frameVideoTriangle {
+            videoTriangle = UIImageView(frame: frameVideo)
+            videoTriangle.alpha = 0.7
+            videoTriangle.image = UIImage(named: "playBtnAlpha")
+            containerView.addSubview(videoTriangle)
+            videoTriangle.alpha = alphaTabs == "up" ? 0 : 0
+        }
+        
         var backView = UIView(frame: CGRect.zero)
         if let frameBackPic = self.frameBackImage {
             backView = UIView(frame: frameBackPic)
@@ -126,10 +148,9 @@ class AnimationController: NSObject, UIViewControllerAnimatedTransitioning {
         }
         
         containerView.bringSubview(toFront: imageView)
-//        containerView.bringSubview(toFront: AnimationController.screenViewNav!)
-//        containerView.bringSubview(toFront: AnimationController.screenViewTab!)
         containerView.bringSubview(toFront: backView)
         containerView.bringSubview(toFront: avatarImage)
+        containerView.bringSubview(toFront: videoTriangle)
         containerView.bringSubview(toFront: AnimationController.screenViewNav!)
         containerView.bringSubview(toFront: AnimationController.screenViewTab!)
         
@@ -144,6 +165,7 @@ class AnimationController: NSObject, UIViewControllerAnimatedTransitioning {
             if self.alphaTabs == "up" {
                 backView.alpha = 0
                 avatarImage.alpha = 0
+                videoTriangle.alpha = 0
                 AnimationController.screenViewNav?.alpha = 0
                 AnimationController.screenViewTab?.alpha = 0
 
@@ -152,6 +174,7 @@ class AnimationController: NSObject, UIViewControllerAnimatedTransitioning {
                 AnimationController.screenViewTab?.alpha = 1
                 backView.alpha = 1
                 avatarImage.alpha = 1
+                videoTriangle.alpha = 0.7
                // self.screenViewNav?.alpha = 0
                // nav.alpha = 0
                // self.screenViewTab?.alpha = (self.alphaTabs?.1)!
@@ -173,6 +196,7 @@ class AnimationController: NSObject, UIViewControllerAnimatedTransitioning {
             fromVC.view.removeFromSuperview()
             backView.removeFromSuperview()
             avatarImage.removeFromSuperview()
+            videoTriangle.removeFromSuperview()
             
             if !transitionContext.transitionWasCancelled {
                 containerView.addSubview(toVC.view)

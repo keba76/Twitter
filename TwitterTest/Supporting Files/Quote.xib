@@ -15,7 +15,7 @@
             <rect key="frame" x="0.0" y="0.0" width="375" height="136"/>
             <autoresizingMask key="autoresizingMask"/>
             <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" tableViewCell="bwi-wh-UcP" id="J3c-wf-Aig">
-                <rect key="frame" x="0.0" y="0.0" width="375" height="135"/>
+                <rect key="frame" x="0.0" y="0.0" width="375" height="136"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="252" horizontalCompressionResistancePriority="752" verticalCompressionResistancePriority="751" text="Harman" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="rvR-d9-vRh">
@@ -51,7 +51,7 @@
                         <rect key="frame" x="75" y="51" width="281" height="40"/>
                         <subviews>
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Name" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="J7C-rC-UeH">
-                                <rect key="frame" x="12" y="8" width="40" height="17"/>
+                                <rect key="frame" x="12" y="8" width="40" height="19"/>
                                 <fontDescription key="fontDescription" type="boldSystem" pointSize="14"/>
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
@@ -69,7 +69,7 @@
                         <color key="backgroundColor" red="0.88235294119999996" green="0.88235294119999996" blue="0.88235294119999996" alpha="1" colorSpace="calibratedRGB"/>
                         <constraints>
                             <constraint firstItem="ykP-3F-YWT" firstAttribute="leading" secondItem="AcO-hG-T2G" secondAttribute="leading" constant="16" id="OcV-RK-919"/>
-                            <constraint firstItem="ykP-3F-YWT" firstAttribute="top" secondItem="J7C-rC-UeH" secondAttribute="bottom" constant="3" id="gIx-xX-krm"/>
+                            <constraint firstItem="ykP-3F-YWT" firstAttribute="top" secondItem="J7C-rC-UeH" secondAttribute="bottom" constant="1" id="gIx-xX-krm"/>
                             <constraint firstItem="J7C-rC-UeH" firstAttribute="top" secondItem="AcO-hG-T2G" secondAttribute="top" constant="8" id="gMP-VV-GCr"/>
                             <constraint firstAttribute="bottom" secondItem="ykP-3F-YWT" secondAttribute="bottom" constant="12" id="pSF-8v-t7X"/>
                             <constraint firstAttribute="trailing" secondItem="ykP-3F-YWT" secondAttribute="trailing" constant="12" id="vte-0T-b4F"/>

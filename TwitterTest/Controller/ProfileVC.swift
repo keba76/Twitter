@@ -43,6 +43,8 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
     var loadingView: UIView?
     var stopOffset = false
     
+    lazy var group = DispatchQueue.global(qos: .userInitiated)
+    
     var user: ModelUser?
     
     var isMoreDataLoading = (start: false, finish: false, download: false)
@@ -62,7 +64,7 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+        AppUtility.lockOrientation(.portrait)
         instance = TwitterClient()
         
         
@@ -114,28 +116,83 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        
+        AppUtility.lockOrientation(.portrait)
         if self.navigationController?.viewControllers.count == 1 {
             
             Profile.markerForReset = true
             Profile.profileAccount = true
             guard let twee = self.tweet else { return }
-            DispatchQueue.global().async {
-                for tweeTemp in twee {
-                    if let id = Profile.tweetIDForFavorite[tweeTemp.tweetID] {
-                        if !id, try! tweeTemp.favoriteBtn.value() {
-                            tweeTemp.favoriteBtn.onNext(false)
-                            let temp = try! tweeTemp.favoriteCount.value() - 1
-                            tweeTemp.favoriteCount.onNext(temp)
-                        } else if id, try! !tweeTemp.favoriteBtn.value() {
-                            tweeTemp.favoriteBtn.onNext(true)
-                            let temp = try! tweeTemp.favoriteCount.value() + 1
-                            tweeTemp.favoriteCount.onNext(temp)
-                        }
+            
+            var timeStamp = false
+            for (key, value) in Profile.tweetID {
+                if twee.contains(where: {$0.tweetID == key}) {
+                    if value { continue }
+                }
+                if value { timeStamp = value; break }
+            }
+            
+            //if Profile.reloadingProfileTweetsWhenReply <= 0 && !timeStamp {
+            
+            var arrayIndex = [Int]()
+            var tempDeleteCount = 0
+            for (index, tweeTemp) in twee.enumerated() {
+                if let id = Profile.tweetID[tweeTemp.tweetID] {
+                    if !id, try! tweeTemp.retweetBtn.value() {
+                        arrayIndex.append(index)
+                        
+                    }
+                }
+                if let id = Profile.tweetIDForFavorite[tweeTemp.tweetID] {
+                    if !id, try! tweeTemp.favoriteBtn.value() {
+                        tweeTemp.favoriteBtn.onNext(false)
+                        let temp = try! tweeTemp.favoriteCount.value() - 1
+                        tweeTemp.favoriteCount.onNext(temp)
+                    } else if id, try! !tweeTemp.favoriteBtn.value() {
+                        tweeTemp.favoriteBtn.onNext(true)
+                        let temp = try! tweeTemp.favoriteCount.value() + 1
+                        tweeTemp.favoriteCount.onNext(temp)
+                    }
+                }
+                if !Profile.tweetIDDelete.isEmpty {
+                    
+                    if let _ = Profile.tweetIDDelete[tweeTemp.tweetID] {
+                        tempDeleteCount += 1
+                        arrayIndex.append(index)
                     }
                 }
             }
-            if Profile.reloadingProfileTweetsWhenRetweet != 0 || Profile.reloadingProfileTweetsWhenReply != 0 {
+            if Profile.tweetIDDelete.count - tempDeleteCount > 0 {
+                Profile.reloadingProfileTweetsWhenReply -= Profile.tweetIDDelete.count - tempDeleteCount
+            }
+            if arrayIndex.count > 0 {
+                var markerOffset = 0
+                for x in arrayIndex {
+                    self.tweet?.remove(at: x - markerOffset)
+                    self.heightCell.remove(at: x - markerOffset)
+                    markerOffset += 1
+                }
+            }
+            Profile.tweetIDDelete = [:]
+            self.tableView.reloadData()
+            
+            //            } else {
+            //            DispatchQueue.global().async {
+            //                for tweeTemp in twee {
+            //                    if let id = Profile.tweetIDForFavorite[tweeTemp.tweetID] {
+            //                        if !id, try! tweeTemp.favoriteBtn.value() {
+            //                            tweeTemp.favoriteBtn.onNext(false)
+            //                            let temp = try! tweeTemp.favoriteCount.value() - 1
+            //                            tweeTemp.favoriteCount.onNext(temp)
+            //                        } else if id, try! !tweeTemp.favoriteBtn.value() {
+            //                            tweeTemp.favoriteBtn.onNext(true)
+            //                            let temp = try! tweeTemp.favoriteCount.value() + 1
+            //                            tweeTemp.favoriteCount.onNext(temp)
+            //                        }
+            //                    }
+            //                }
+            //            }
+            //            }
+            if timeStamp || Profile.reloadingProfileTweetsWhenReply > 0 {
                 
                 self.tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: false)
                 viewHelp = UIView(frame: CGRect(x: 0.0, y: self.tableHeaderHeight, width: view.bounds.width, height: view.bounds.height))
@@ -176,24 +233,7 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                     Profile.reloadingProfileTweetsWhenRetweet = 0
                     Profile.reloadingProfileTweetsWhenReply = 0
                     
-                    if uniqueTemp.count == 0 {
-                        var delta = 0
-                        for value in twee {
-                            if data.contains(value) { break }
-                            delta += 1
-                        }
-                        var indexPathDelta = [IndexPath]()
-                        while delta != 0 {
-                            let index = IndexPath(item: delta - 1, section: 0)
-                            indexPathDelta.insert(index, at: 0)
-                            
-                            self.heightCell.remove(at: delta - 1)
-                            self.tweet?.remove(at: delta - 1)
-                            delta -= 1
-                        }
-                        let section = IndexSet(integer: 0)
-                        self.tableView.reloadSections(section, with: .bottom)
-                    } else {
+                    if uniqueTemp.count > 0 {
                         self.tweet?.insert(contentsOf: uniqueTemp, at: 0)
                         
                         var indexRefresh = [IndexPath]()
@@ -250,7 +290,6 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                             tweeTemp.favoriteCount.onNext(temp)
                         }
                     }
-                    
                 }
                 DispatchQueue.main.async { self.tableView.reloadData() }
             }
@@ -284,7 +323,17 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                         s.varietyCellAction(data: data)
                     }).addDisposableTo(self.dis)
                 }
+                
+                let startIndex = self.tweet!.count
                 self.tweet?.append(contentsOf: data)
+                let endIndex  = self.tweet!.count - 1
+                var index = [IndexPath]()
+                if endIndex > startIndex {
+                    for x in startIndex...endIndex {
+                        let tempIndex = IndexPath(item: x, section: 0)
+                        index.append(tempIndex)
+                    }
+                }
                 
                 if self.isMoreDataLoading.finish {
                     self.isMoreDataLoading = (start: false, finish: true, download: false)
@@ -294,12 +343,17 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                     self.loadingView?.removeFromSuperview()
                     self.loadingMoreTweets = nil
                     self.loadingView = nil
-                    self.tableView.setContentOffset(CGPoint(x: 0.0, y: pointOffSetY), animated: true)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: {
-                        self.tableView.reloadData()
+                    //self.tableView.setContentOffset(CGPoint(x: 0.0, y: pointOffSetY), animated: true)
+                    UIView.animate(withDuration: 0.2, delay: 0, options: .curveLinear, animations: {
+                        self.tableView.setContentOffset(CGPoint(x: 0.0, y: pointOffSetY), animated: false)
+                    }, completion: { finished in
+                        self.tableView.beginUpdates()
+                        self.tableView.insertRows(at: index, with: .none)
+                        self.tableView.endUpdates()
                         self.tableView.setContentOffset(CGPoint(x: 0.0, y: pointOffSetY + (self.tableView.contentOffset.y - pointOffSetY) + 100.0), animated: true)
                         self.isMoreDataLoading.finish = false
                     })
+                    
                 } else if !self.isMoreDataLoading.finish {
                     self.isMoreDataLoading.download = true
                 }
@@ -329,24 +383,15 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
             print(data)
             guard let twee = self.tweet else { return }
             if TabBarVC.tab == .profileVC, self.navigationController?.viewControllers.count == 1 {
-                
                 Profile.reloadingProfileTweetsWhenRetweet = 0
-                
-                
+                self.tweet?.remove(at: index.row)
+                self.heightCell.remove(at: index.row)
                 self.imageLoadOperations.forEach {$0.value.cancel()}
                 self.imageLoadOperationsMedia.forEach {$0.value.cancel()}
-                self.imageLoadOperations = [IndexPath: ImageLoadOperation]()
-                self.imageLoadOperationsMedia = [IndexPath: ImageLoadOperation]()
-                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: {
-                    self.tableView.beginUpdates()
-                    self.tweet?.remove(at: index.row)
-                    self.heightCell.remove(at: index.row)
-                    self.tableView.deleteRows(at: [index], with: .bottom)
-                    self.tableView.endUpdates()
-                })
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.7, execute: {
-                    self.tableView.reloadData()
+                self.imageLoadOperations = [:]
+                self.imageLoadOperationsMedia = [:]
+                self.tableView.performUpdate({ self.tableView.deleteRows(at: [index], with: .automatic) }, completion: {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { self.tableView.reloadData() }
                 })
             } else {
                 if twee[index.row].retweetedType == "Retweeted by You" {
@@ -354,7 +399,11 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                 } else if twee[index.row].retweetedType == "" {
                     heightCell[index.row] = heightCell[index.row] - 12.0
                 }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { self.tableView.reloadRows(at: [index], with: .none) }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: {
+                    self.tableView.beginUpdates()
+                    self.tableView.reloadRows(at: [index], with: .none)
+                    self.tableView.endUpdates()
+                })
             }
         case let .UserPicTap(tweet):
             let controller = UIStoryboard(name: "Main", bundle: Bundle.main).instantiateViewController(withIdentifier: "ProfileVC") as! ProfileVC
@@ -372,8 +421,8 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                 controller.tweet = twee
                 self.settings = true
                 present(controller, animated: true, completion: nil)
-                controller.thirdBtn.setImage(UIImage(named: "replyBtn"), for: .normal)
-                controller.secondBtn.setImage(UIImage(named: "replyToAllBtn"), for: .normal)
+                controller.thirdBtn.setImage(UIImage(named: "btnModalyReply"), for: .normal)
+                controller.secondBtn.setImage(UIImage(named: "btnModalyReplyToAll"), for: .normal)
             } else {
                 if !replyAll {
                     let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main).instantiateViewController(withIdentifier: "ReplyAndNewTweet") as! UINavigationController
@@ -401,8 +450,7 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
             }
         case let .Settings(index, twee, delete, viewDetail, viewRetweets, modal):
             if modal {
-                guard let userName = Profile.account?.screenName else { return }
-                if twee.userScreenName == "@\(userName)" {
+                if twee.userScreenName == Profile.account.screenNameAt {
                     let controller = UIStoryboard(name: "Main", bundle: Bundle.main).instantiateViewController(withIdentifier: "ModallyVC") as! ModallyVC
                     controller.transitioningDelegate = self
                     controller.modalPresentationStyle = .custom
@@ -410,9 +458,9 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                     controller.tweet = twee
                     controller.index = index
                     present(controller, animated: true, completion: nil)
-                    controller.fourthBtn.setImage(UIImage(named: "delete"), for: .normal)
-                    controller.thirdBtn.setImage(UIImage(named: "viewDetail"), for: .normal)
-                    controller.secondBtn.setImage(UIImage(named: "viewRetweets"), for: .normal)
+                    controller.fourthBtn.setImage(UIImage(named: "btnModalyDelete"), for: .normal)
+                    controller.thirdBtn.setImage(UIImage(named: "btnModalyShowDetails"), for: .normal)
+                    controller.secondBtn.setImage(UIImage(named: "btnModalyShowRetweets"), for: .normal)
                 } else {
                     let controller = UIStoryboard(name: "Main", bundle: Bundle.main).instantiateViewController(withIdentifier: "ModallyVC") as! ModallyVC
                     controller.transitioningDelegate = self
@@ -421,20 +469,24 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                     controller.tweet = twee
                     controller.index = index
                     present(controller, animated: true, completion: nil)
-                    controller.thirdBtn.setImage(UIImage(named: "viewDetail"), for: .normal)
-                    controller.secondBtn.setImage(UIImage(named: "viewRetweets"), for: .normal)
+                    controller.thirdBtn.setImage(UIImage(named: "btnModalyShowDetails"), for: .normal)
+                    controller.secondBtn.setImage(UIImage(named: "btnModalyShowRetweets"), for: .normal)
                 }
             } else {
                 twee.settingsBtn.onNext(false)
                 switch true {
                 case delete:
                     TwitterClient.swifter.destroyTweet(forID: twee.tweetID)
-                    self.tableView.beginUpdates()
                     self.heightCell.remove(at: index.row)
                     self.tweet!.remove(at: index.row)
-                    self.tableView.deleteRows(at: [index], with: .bottom)
-                    self.tableView.endUpdates()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8, execute: { self.tableView.reloadData() })
+                    self.imageLoadOperations.forEach {$0.value.cancel()}
+                    self.imageLoadOperationsMedia.forEach {$0.value.cancel()}
+                    self.imageLoadOperations = [:]
+                    self.imageLoadOperationsMedia = [:]
+                    self.tableView.performUpdate({self.tableView.deleteRows(at: [index], with: .bottom)}, completion: {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { self.tableView.reloadData() }
+                    })
+                    Profile.tweetIDDelete[twee.tweetID] = true
                 case viewDetail:
                     let controller = UIStoryboard(name: "Main", bundle: Bundle.main).instantiateViewController(withIdentifier: "DetailsVC") as! DetailsVC
                     customAttributeForDetailsVC(tweet: twee, complete: { data in
@@ -493,20 +545,35 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
             self.present(controller, animated: true, completion: nil)
             
         case let .MediaScale(index, convert):
-            var frameCell = self.tableView.rectForRow(at: (index))
-            frameCell = CGRect(origin: CGPoint(x: frameCell.origin.x + convert.origin.x, y: frameCell.origin.y + convert.origin.y), size: convert.size)
-            let convertFinal: CGRect! = tableView.convert(frameCell, to: tableView.superview)
-            self.dataMediaScale = SomeTweetsData()
-            self.dataMediaScale?.convert = convertFinal
-            self.dataMediaScale?.image = try! self.tweet?[index.row].image.value()
-            self.dataMediaScale?.indexPath = index
-            Profile.shotView = false
-            let controllerPhotoScale = UIStoryboard(name: "Main", bundle: Bundle.main).instantiateViewController(withIdentifier: "PhotoScaleVC") as! PhotoScaleVC
-            controllerPhotoScale.transitioningDelegate = self
-            controllerPhotoScale.image = self.dataMediaScale?.image
-            present(controllerPhotoScale, animated: true, completion: nil)
-            print(data)
-            
+            if let youTubeURL = self.tweet?[index.row].youtubeURL {
+                let controller = SFSafariViewController(url: youTubeURL, entersReaderIfAvailable: true)
+                self.present(controller, animated: true, completion: nil)
+            } else {
+                var frameCell = self.tableView.rectForRow(at: (index))
+                frameCell = CGRect(origin: CGPoint(x: frameCell.origin.x + convert.origin.x, y: frameCell.origin.y + convert.origin.y), size: convert.size)
+                let convertFinal: CGRect! = tableView.convert(frameCell, to: tableView.superview)
+                self.dataMediaScale = SomeTweetsData()
+                self.dataMediaScale?.convert = convertFinal
+                self.dataMediaScale?.image = try! self.tweet?[index.row].image.value()
+                self.dataMediaScale?.indexPath = index
+                Profile.shotView = false
+                let controllerPhotoScale = UIStoryboard(name: "Main", bundle: Bundle.main).instantiateViewController(withIdentifier: "PhotoScaleVC") as! PhotoScaleVC
+                controllerPhotoScale.transitioningDelegate = self
+                controllerPhotoScale.image = self.dataMediaScale?.image
+                if let url = self.tweet?[index.row].videoURL {
+                    self.dataMediaScale?.mediaTriangle = true
+                    let convertFrameTriangle = CGRect(x: convertFinal.center.x  - 15.0, y: convertFinal.center.y - 15.0, width: 30.0, height: 30.0)
+                    self.dataMediaScale?.frameVideoTriangle = convertFrameTriangle
+                    controllerPhotoScale.urlVideo = url
+                }
+                if let url = self.tweet?[index.row].instagramVideo {
+                    self.dataMediaScale?.mediaTriangle = true
+                    let convertFrameTriangle = CGRect(x: convertFinal.center.x  - 15.0, y: convertFinal.center.y - 15.0, width: 30.0, height: 30.0)
+                    self.dataMediaScale?.frameVideoTriangle = convertFrameTriangle
+                    controllerPhotoScale.urlVideo = url
+                }
+                present(controllerPhotoScale, animated: true, completion: nil)
+            }
         default:
             break
         }
@@ -553,20 +620,19 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                 if tabBarController?.selectedIndex == 1, self.navigationController?.viewControllers.count == 1 {
                     controller.variety = VarietyModally.showMute
                     present(controller, animated: true, completion: nil)
-                    controller.secondBtn.setImage(UIImage(named: "muteUsers"), for: .normal)
+                    controller.secondBtn.setImage(UIImage(named: "btnModalyShowMute"), for: .normal)
                 } else {
                     controller.variety = VarietyModally.fourBtn
                     present(controller, animated: true, completion: nil)
-                    controller.fourthBtn.setImage(UIImage(named: "publicReplyBtn"), for: .normal)
-                    controller.secondBtn.setImage(UIImage(named: "muteBtn"), for: .normal)
+                    controller.fourthBtn.setImage(UIImage(named: "btnModalyReplyPublic"), for: .normal)
+                    controller.secondBtn.setImage(UIImage(named: "btnModalyMute"), for: .normal)
                     if !Profile.arrayIdFollowers.isEmpty, let id = Int(user.id)  {
                         if Profile.arrayIdFollowers.contains(where: {$0.integer == id}) {
-                            controller.thirdBtn.setImage(UIImage(named: "unfollowBtn"), for: .normal)
+                            controller.thirdBtn.setImage(UIImage(named: "btnModalyUnfollow"), for: .normal)
                         } else {
-                            controller.thirdBtn.setImage(UIImage(named: "followBtn"), for: .normal)
+                            controller.thirdBtn.setImage(UIImage(named: "btnModalyFollow"), for: .normal)
                         }
                     }
-                    
                 }
             } else {
                 switch true {
@@ -576,14 +642,14 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                     let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main).instantiateViewController(withIdentifier: "ReplyAndNewTweet") as! UINavigationController
                     if let controller = storyboard.viewControllers.first as? ReplyAndNewTweetVC {
                         var tempSet = Set<String>()
-                        tempSet.insert(user.screenName)
+                        tempSet.insert("@\(user.screenName)")
                         controller.user = tempSet
+                        controller.publicReply = true
                         self.present(storyboard, animated: true, completion: nil)
                     }
                 default:
                     break
                 }
-                
             }
         default:
             break
@@ -613,7 +679,10 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
             cell.tweetSetConfigure(tweet: media)
             cell.indexPath = indexPath
             if self.dataMediaScale?.indexPath == nil {
-                fetchImageForCell(index: indexPath, data: media)
+                group.async {
+                    self.fetchImageForCell(index: indexPath, data: media)
+                }
+                
             }
             return cell
         case let quote where quote.quote != nil:
@@ -621,17 +690,21 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
             cell.tweetSetConfigure(tweet: quote)
             cell.indexPath = indexPath
             if !quote.quote!.mediaImageURLs.isEmpty {
-                DispatchQueue.global().async {
+                group.async {
                     cell.imageQuote.sd_setImage(with: quote.quote?.mediaImageURLs.first)
                 }
             }
-            self.fetchImageForCell(index: indexPath, data: quote)
+            group.async {
+                self.fetchImageForCell(index: indexPath, data: quote)
+            }
             return cell
         case let compact where !compact.tweetID.isEmpty:
             let cell = tableView.dequeueReusableCell(withIdentifier: "CompactCell", for: indexPath) as! CompactCell
             cell.tweetSetConfigure(tweet: twee[indexPath.row])
             cell.indexPath = indexPath
-            self.fetchImageForCell(index: indexPath, data: compact)
+            group.async {
+                self.fetchImageForCell(index: indexPath, data: compact)
+            }
             return cell
             
         default:
@@ -709,11 +782,9 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
         }
     }
     
-    
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
     }
-    
     
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         if tableView.contentOffset.y < -(tableHeaderHeight) {
@@ -870,10 +941,10 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                 
                 let sizeQuoteTextLbl: CGFloat
                 if !tweetHeight.quote!.mediaImageURLs.isEmpty {
-                    sizeQuoteTextLbl = 2.0 + 60.0
+                    sizeQuoteTextLbl = 4.0 + 60.0
                 } else {
                     let rectQuote = tweetHeight.quote!.text.boundingRect(with:  CGSize(width: cell.textQuote.frame.size.width, height: CGFloat.greatestFiniteMagnitude), options: .usesLineFragmentOrigin, context: nil)
-                    sizeQuoteTextLbl = ceil(rectQuote.size.height)
+                    sizeQuoteTextLbl = ceil(rectQuote.size.height) + 1.0
                 }
                 let viewContent = cell.contentView
                 let size = viewContent.systemLayoutSizeFitting(UILayoutFittingCompressedSize)

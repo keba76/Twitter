@@ -8,11 +8,16 @@
 
 import UIKit
 
+protocol KeyTop { func keyboardTop() }
+
 class PopAnimatorImageScale: NSObject, UIViewControllerAnimatedTransitioning {
     
     let duration = 0.3
     var presenting = true
     var originFrame = CGRect.zero
+    var delegate: KeyTop?
+    var deltaOffsetHeightInitial: CGFloat = 0.0
+    var deltaOffsetHeightFinale: CGFloat = 0.0
     
     var dismissCompletion: (()->Void)?
     
@@ -27,11 +32,18 @@ class PopAnimatorImageScale: NSObject, UIViewControllerAnimatedTransitioning {
         
         let bigView = presenting ? toView : transitionContext.view(forKey: .from)!
         
-    
-       
-        
+        var finalFrame: CGRect
+        if presenting {
+            finalFrame = bigView.frame
+        } else {
+            if self.deltaOffsetHeightInitial == self.deltaOffsetHeightFinale {
+                finalFrame = originFrame
+            } else {
+                finalFrame = originFrame
+                finalFrame.origin.y = self.deltaOffsetHeightFinale - (self.deltaOffsetHeightInitial - self.originFrame.origin.y)
+            }
+        }
         let initialFrame = presenting ? originFrame : bigView.frame
-        let finalFrame = presenting ? bigView.frame : originFrame
         
         let xScaleFactor = presenting ? initialFrame.width / finalFrame.width : finalFrame.width / initialFrame.width
         
@@ -49,17 +61,17 @@ class PopAnimatorImageScale: NSObject, UIViewControllerAnimatedTransitioning {
         
         containerView.addSubview(toView)
         containerView.bringSubview(toFront: bigView)
-        UIView.animate(withDuration: duration,  animations: {
-            bigView.transform = self.presenting ? CGAffineTransform.identity : scaleTransform
-            bigView.center = CGPoint(x: finalFrame.midX,
-                                     y: finalFrame.midY)
-        },
-                       completion:{_ in
-                        if !self.presenting {
-                            self.dismissCompletion?()
-                        }
-                        transitionContext.completeTransition(true)
-        })
         
+        UIView.animate(withDuration: duration, delay: 0.0, options: .curveEaseIn, animations: {
+            bigView.transform = self.presenting ? CGAffineTransform.identity : scaleTransform
+            bigView.center = CGPoint(x: finalFrame.midX, y: finalFrame.midY)
+            if !self.presenting { bigView.alpha = 0.2 }
+        }) { finished in
+            if !self.presenting {
+                self.dismissCompletion?()
+                self.delegate?.keyboardTop()
+            }
+            transitionContext.completeTransition(true)
+        }
     }
 }

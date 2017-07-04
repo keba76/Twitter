@@ -20,6 +20,7 @@ class Tweet {
     var text: String?
     var urls: [JSON]?
     var media: [JSON]?
+    var extendedMedia: [JSON]?
     var user: JSON?
     var username: String?
     var userScreenName: String?
@@ -36,6 +37,7 @@ class Tweet {
     var quote: Tweet?
     var via: String?
     var followingStatus = false
+    var replyConversation = ""
     
     
     init(dict: JSON) {
@@ -53,7 +55,7 @@ class Tweet {
             self.retweeted = dict["retweeted_status"]["retweeted"].bool ?? false
             self.favorited = dict["retweeted_status"]["favorited"].bool ?? false
             self.retweetTweetID = dict["retweeted_status"]["id_str"].string
-            if self.retweetedName == Profile.account?.name {
+            if self.retweetedName == Profile.account.name {
                 retweetBtn = true
             }
             tweetParseDetails(some: dict["retweeted_status"])
@@ -73,6 +75,7 @@ class Tweet {
         self.userAvatar = URL(string: (some["user"]["profile_image_url_https"].string?.replace(target: "_normal", withString: ""))!)
         self.urls = some["entities"]["urls"].array
         self.media = some["entities"]["media"].array
+        self.extendedMedia = some["extended_entities"]["media"].array
         self.hashtag = some["entities"]["hashtags"].array
         if let mention = some["entities"]["user_mentions"].array {
             if mention.count > 0 {
@@ -87,7 +90,7 @@ class Tweet {
         self.user = some["user"]
         self.retweetCount = some["retweet_count"].integer ?? 0
         self.favoriteCount = some["favorite_count"].integer ?? 0
-        
+        self.replyConversation = some["in_reply_to_status_id_str"].string ?? ""
         self.via = some["source"].string
         
         let timeSt = some["created_at"].string
