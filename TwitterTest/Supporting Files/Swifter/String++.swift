@@ -31,13 +31,13 @@ extension String {
         guard let range = self.range(of: sub), !range.isEmpty else {
             return nil
         }
-        return self.characters.distance(from: self.startIndex, to: range.lowerBound)
+        return self.distance(from: self.startIndex, to: range.lowerBound)
     }
 
-    internal subscript (r: Range<Int>) -> String {
+    internal subscript (r: Range<Int>) -> Substring {
         get {
-            let startIndex = self.characters.index(self.startIndex, offsetBy: r.lowerBound)
-            let endIndex = self.characters.index(startIndex, offsetBy: r.upperBound - r.lowerBound)
+            let startIndex = self.index(self.startIndex, offsetBy: r.lowerBound)
+            let endIndex = self.index(startIndex, offsetBy: r.upperBound - r.lowerBound)
             return self[startIndex..<endIndex]
         }
     }
@@ -57,25 +57,21 @@ extension String {
 
         let scanner = Scanner(string: self)
 
-        var key: NSString?
-        var value: NSString?
+        var key: String?
+        var value: String?
 
         while !scanner.isAtEnd {
-            key = nil
-            scanner.scanUpTo("=", into: &key)
-            scanner.scanString("=", into: nil)
+            key = scanner.scanUpToString("=")
+            _ = scanner.scanString(string: "=")
 
-            value = nil
-            scanner.scanUpTo("&", into: &value)
-            scanner.scanString("&", into: nil)
+            value = scanner.scanUpToString("&")
+            _ = scanner.scanString(string: "&")
 
-            if let key = key as? String, let value = value as? String {
+            if let key = key, let value = value {
                 parameters.updateValue(value, forKey: key)
             }
         }
         
         return parameters
     }
-
 }
-

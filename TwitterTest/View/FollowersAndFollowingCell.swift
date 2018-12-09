@@ -31,7 +31,7 @@ class FollowersAndFollowingCell: UITableViewCell {
     
     func userSetConfigure() {
         
-        user.userPicImage.asObservable().observeOn(MainScheduler.instance).bindTo(userPic.rx.image).addDisposableTo(dis)
+        user.userPicImage.asObservable().observeOn(MainScheduler.instance).bind(to: userPic.rx.image).disposed(by: self.dis)
         
         userPic.layer.cornerRadius = 5
         userPic.clipsToBounds = true
@@ -45,6 +45,6 @@ class FollowersAndFollowingCell: UITableViewCell {
         settingsBtn.rx.tap.asObservable().subscribe(onNext: { [weak self] _ in
             guard let s = self else { return }
             s.user?.userData.value = UserData.TapSettingsBtn(user: s.user!, modal: true, showMute: false, publicReply: false, mute: false, follow: false)
-        }).addDisposableTo(dis)
-    }
+        }).disposed(by: self.dis)
+}
 }

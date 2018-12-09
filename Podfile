@@ -6,17 +6,9 @@ target 'TwitterTest' do
   use_frameworks!
 
   # Pods for TwitterTest
-  pod 'SimpleAuth/Twitter'
-  pod 'SimpleAuth/TwitterWeb'
-  pod 'RxSwift',    '~> 3.0'
-  pod 'RxCocoa',    '~> 3.0'
-  pod 'SDWebImage', '~>3.8'
-  pod 'Kanna', '~> 2.1.0'
+  pod 'RxSwift',    '~> 4.0'
+  pod 'RxCocoa',    '~> 4.0'
+  pod 'SDWebImage', '~> 4.0'
+  pod 'Kanna', '~> 4.0.0'
 end
-post_install do |_|
-    work_dir = Dir.pwd
-    file_name = "#{work_dir}/Pods/Target\ Support\ Files/SimpleAuth/SimpleAuth.xcconfig"
-    config = File.read(file_name)
-    new_config = config.gsub(/HEADER_SEARCH_PATHS = "/, 'HEADER_SEARCH_PATHS = "${PODS_ROOT}" "')
-                             File.open(file_name, 'w') { |file| file << new_config }
-end
+

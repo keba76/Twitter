@@ -51,7 +51,7 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
             viewProgress = NVActivityIndicatorView(frame: rectProgress, type: .lineScalePulseOut, color: UIColor(red: 255/255, green: 0/255, blue: 104/255, alpha: 1), padding: 0)
             
             self.view.addSubview(self.viewProgress!)
-            self.view.bringSubview(toFront: self.viewProgress!)
+            self.view.bringSubviewToFront(self.viewProgress!)
             self.viewProgress?.startAnimating()
             reloadDataForRetweets()
         } else {
@@ -65,7 +65,7 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
             viewProgress = NVActivityIndicatorView(frame: rectProgress, type: .lineScalePulseOut, color: UIColor(red: 255/255, green: 0/255, blue: 104/255, alpha: 1), padding: 0)
             
             self.view.addSubview(self.viewProgress!)
-            self.view.bringSubview(toFront: self.viewProgress!)
+            self.view.bringSubviewToFront(self.viewProgress!)
             self.viewProgress?.startAnimating()
         }
     }
@@ -84,7 +84,7 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
                 s.varietyUserAction(data: data)
                 }, onCompleted: {
                     print("!!!")
-            }).addDisposableTo(self.dis)
+            }).disposed(by: self.dis)
         }
     }
     
@@ -100,7 +100,7 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
                     guard let s = self else { return }
                     s.varietyUserAction(data: data)
                     }, onCompleted: {
-                }).addDisposableTo(self.dis)
+                }).disposed(by: self.dis)
             }
             
             self.users.append(contentsOf: user)
@@ -119,7 +119,7 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
                         s.varietyUserAction(data: data)
                         }, onCompleted: {
                             print("!!!")
-                    }).addDisposableTo(self.dis)
+                    }).disposed(by: self.dis)
                 }
                 self.users.append(contentsOf: user)
                 self.cursor = cursor
@@ -156,7 +156,7 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
                         s.varietyUserAction(data: data)
                         }, onCompleted: {
                             print("!!!")
-                    }).addDisposableTo(self.dis)
+                    }).disposed(by: self.dis)
                 }
                 
                 self.users.append(contentsOf: user)
@@ -171,7 +171,7 @@ class FollowersAndFollowingVC: UIViewController, UITableViewDelegate, UITableVie
     
     private func varietyUserAction(data: UserData) {
         switch data {
-        case let .TapSettingsBtn(user, modal, _ , publicReply, mute, follow):
+        case let .TapSettingsBtn(user, modal, _ , publicReply, _, _):
             if modal {
                 let controller = UIStoryboard(name: "Main", bundle: Bundle.main).instantiateViewController(withIdentifier: "ModallyVC") as! ModallyVC
                 controller.transitioningDelegate = self

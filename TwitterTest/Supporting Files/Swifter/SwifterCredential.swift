@@ -24,19 +24,22 @@
 //
 
 import Foundation
+
+#if os(macOS) || os(iOS)
 import Accounts
+#endif
 
 public class Credential {
-    
+
     public struct OAuthAccessToken {
-        
+
         public internal(set) var key: String
         public internal(set) var secret: String
         public internal(set) var verifier: String?
-        
+
         public internal(set) var screenName: String?
         public internal(set) var userID: String?
-        
+
         public init(key: String, secret: String) {
             self.key = key
             self.secret = secret
@@ -48,18 +51,18 @@ public class Credential {
             self.screenName = screenName
             self.userID = userID
         }
-        
+
         public init(queryString: String) {
             var attributes = queryString.queryStringParameters
-            
+
             self.key = attributes["oauth_token"]!
             self.secret = attributes["oauth_token_secret"]!
-            
+
             self.screenName = attributes["screen_name"]
             self.userID = attributes["user_id"]
         }
         
-        class Coding: NSObject, NSCoding {
+        @objc(_TtCVC11TwitterTest10Credential16OAuthAccessToken6Coding)class Coding: NSObject, NSCoding {
             let event: OAuthAccessToken?
             
             init(event: OAuthAccessToken) {
@@ -79,18 +82,22 @@ public class Credential {
                 aCoder.encode(event.userID, forKey: "userID")
             }
         }
-    }
     
+        
+    }
+
     public internal(set) var accessToken: OAuthAccessToken?
+
+    #if os(macOS) || os(iOS)
     public internal(set) var account: ACAccount?
-    
-    
-    public init(accessToken: OAuthAccessToken) {
-        self.accessToken = accessToken
-    }
-    
+
     public init(account: ACAccount) {
         self.account = account
+    }
+    #endif
+
+    public init(accessToken: OAuthAccessToken) {
+        self.accessToken = accessToken
     }
     
     static func dataFileURL() -> URL {
@@ -99,7 +106,5 @@ public class Credential {
         url = urls.first!.appendingPathComponent("data.archive")
         return url!
     }
+
 }
-
-
-

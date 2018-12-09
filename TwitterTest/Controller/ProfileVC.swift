@@ -79,7 +79,7 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
             Profile.reloadingProfileTweetsWhenReply = 0
         }
         
-        headerView = tableView.tableHeaderView as! ProfileHeader
+        headerView = tableView.tableHeaderView as? ProfileHeader
         tableView.tableHeaderView = nil
         tableView.addSubview(headerView)
         tableView.contentInset = UIEdgeInsets(top: tableHeaderHeight - 64.0, left: 0, bottom: 0, right: 0)
@@ -90,12 +90,12 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
         self.user?.userData.asObservable().subscribe(onNext: { [weak self] data in
             guard let s = self else { return }
             s.varietyUserAction(data: data)
-        }).addDisposableTo(dis)
+        }).disposed(by: self.dis)
         
         let rectProgress = CGRect(x: view.bounds.width/2 - 20.0, y: (view.bounds.height + tableView.contentInset.top + 64.0)/2 - 20.0, width: 40.0, height: 40.0)
         viewProgress = NVActivityIndicatorView(frame: rectProgress, type: .lineScalePulseOut, color: UIColor(red: 255/255, green: 0/255, blue: 104/255, alpha: 1), padding: 0)
         self.view.addSubview(self.viewProgress!)
-        self.view.bringSubview(toFront: self.viewProgress!)
+        self.view.bringSubviewToFront(self.viewProgress!)
         self.viewProgress?.startAnimating()
         
         self.navigationItem.title = user?.screenName
@@ -198,12 +198,12 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                 viewHelp = UIView(frame: CGRect(x: 0.0, y: self.tableHeaderHeight, width: view.bounds.width, height: view.bounds.height))
                 viewHelp?.backgroundColor = UIColor.groupTableViewBackground
                 self.view.addSubview(viewHelp!)
-                self.view.bringSubview(toFront: viewHelp!)
+                self.view.bringSubviewToFront(viewHelp!)
                 
                 let rectProgress = CGRect(x: view.bounds.width/2 - 20.0, y: (self.tableHeaderHeight + (view.bounds.height - self.tableHeaderHeight)/2) - 20.0, width: 40.0, height: 40.0)
                 viewProgress = NVActivityIndicatorView(frame: rectProgress, type: .lineScalePulseOut, color: UIColor(red: 255/255, green: 0/255, blue: 104/255, alpha: 1), padding: 0)
                 self.view.addSubview(self.viewProgress!)
-                self.view.bringSubview(toFront: self.viewProgress!)
+                self.view.bringSubviewToFront(self.viewProgress!)
                 self.viewProgress?.startAnimating()
                 self.lastTweetID = nil
                 instance?.userTimeLine(id: (user?.id)!, maxID: lastTweetID) { (data) in
@@ -222,7 +222,7 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                         value.cellData.asObservable().subscribe(onNext: { [weak self] data in
                             guard let s = self else { return }
                             s.varietyCellAction(data: data)
-                        }).addDisposableTo(self.dis)
+                        }).disposed(by: self.dis)
                         uniqueTemp.append(value)
                     }
                     
@@ -321,7 +321,7 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                     x.cellData.asObservable().subscribe(onNext: { [weak self] data in
                         guard let s = self else { return }
                         s.varietyCellAction(data: data)
-                    }).addDisposableTo(self.dis)
+                    }).disposed(by: self.dis)
                 }
                 
                 let startIndex = self.tweet!.count
@@ -367,7 +367,7 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                         x.cellData.asObservable().subscribe(onNext: { [weak self] data in
                             guard let s = self else { return }
                             s.varietyCellAction(data: data)
-                        }).addDisposableTo(self.dis)
+                        }).disposed(by: self.dis)
                     }
                 }
                 let section = IndexSet(integer: 0)
@@ -493,11 +493,12 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                         controller.attributeText = data
                         controller.tweet = twee
                     })
-                    SDWebImageManager.shared().downloadImage(with: twee.userAvatar, progress: { (_, _) in }, completed: { (image, error, cache, _, _) in
+                    SDWebImageManager.shared().loadImage(with: twee.userAvatar, progress: { (_, _,
+                        _) in }, completed: { (image, error, cache, _, _, _) in
                         twee.userPicImage.onNext(image!)
                     })
                     if let url = twee.mediaImageURLs.first {
-                        SDWebImageManager.shared().downloadImage(with: url, progress: { (_, _) in }, completed: { (image, error, cache, _, _) in
+                        SDWebImageManager.shared().loadImage(with: url, progress: { (_, _, _) in }, completed: { (image, error, cache, _, _, _) in
                             twee.image.onNext(image!)
                         })
                     }
@@ -516,13 +517,13 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                 controller.attributeText = data
                 controller.tweet = tweet
             })
-            SDWebImageManager.shared().downloadImage(with: tweet.userAvatar, progress: { (_, _) in }, completed: { (image, error, cache, _, _) in
+            SDWebImageManager.shared().loadImage(with: tweet.userAvatar, progress: { (_, _, _) in }, completed: { (image, error, cache, _, _, _) in
                 if image == nil {
                     let urlString = tweet.userAvatar.absoluteString
                     if urlString.contains("profile_images") {
                         let newUrl = urlString.replace(target: ".jpg", withString: "_bigger.jpg")
-                        SDWebImageManager.shared().downloadImage(with: URL(string: newUrl), progress: { (_ , _) in
-                        }) { (image, error, cache , _ , _) in
+                        SDWebImageManager.shared().loadImage(with: URL(string: newUrl), progress: { (_ , _, _) in
+                        }) { (image, error, cache , _ , _, _) in
                             tweet.userPicImage.onNext(image!)
                         }
                     }
@@ -532,7 +533,7 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                 
             })
             if let url = tweet.mediaImageURLs.first {
-                SDWebImageManager.shared().downloadImage(with: url, progress: { (_, _) in }, completed: { (image, error, cache, _, _) in tweet.image.onNext(image!)
+                SDWebImageManager.shared().loadImage(with: url, progress: { (_, _, _) in }, completed: { (image, error, cache, _, _, _) in tweet.image.onNext(image!)
                 })
             }
             self.navigationController?.pushViewController(controller, animated: true)
@@ -609,7 +610,7 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
             }
             present(controllerPhotoScale, animated: true, completion: nil)
             
-        case let .TapSettingsBtn(user, modal, showMute, publicReply, mute, follow):
+        case let .TapSettingsBtn(user, modal, showMute, publicReply, _, _):
             if modal {
                 print(data)
                 self.settings = true
@@ -893,11 +894,11 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
         let text = tweet.text
         let attribute = NSMutableAttributedString(attributedString: text)
         attribute.beginEditing()
-        attribute.enumerateAttribute(NSFontAttributeName, in: NSRange(location: 0, length: text.length), using: { (value, range, stop) in
+        attribute.enumerateAttribute(NSAttributedString.Key(rawValue: convertFromNSAttributedStringKey(NSAttributedString.Key.font)), in: NSRange(location: 0, length: text.length), using: { (value, range, stop) in
             if let oldFont = value as? UIFont {
                 let newFont = oldFont.withSize(14.5)
-                attribute.removeAttribute(NSFontAttributeName, range: range)
-                attribute.addAttribute(NSFontAttributeName, value: newFont, range: range)
+                attribute.removeAttribute(NSAttributedString.Key.font, range: range)
+                attribute.addAttribute(NSAttributedString.Key.font, value: newFont, range: range)
             }
         })
         attribute.endEditing()
@@ -920,7 +921,7 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                 let initialSizeTextLbl = cell.tweetContentText.frame.size
                 let rect = tweetHeight.text.boundingRect(with:  CGSize(width: initialSizeTextLbl.width, height: CGFloat.greatestFiniteMagnitude), options: .usesLineFragmentOrigin, context: nil)
                 let viewContent = cell.contentView
-                let size = viewContent.systemLayoutSizeFitting(UILayoutFittingCompressedSize)
+                let size = viewContent.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
                 let finaleSize: CGFloat
                 if tweetHeight.retweetedType.isEmpty {
                     finaleSize = size.height + ceil(rect.size.height) - 12.0 + 1.0
@@ -947,7 +948,7 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                     sizeQuoteTextLbl = ceil(rectQuote.size.height) + 1.0
                 }
                 let viewContent = cell.contentView
-                let size = viewContent.systemLayoutSizeFitting(UILayoutFittingCompressedSize)
+                let size = viewContent.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
                 let finaleSize: CGFloat
                 if tweetHeight.retweetedType.isEmpty {
                     finaleSize = size.height + ceil(rect.size.height) - 12.0 + 1.0 + sizeQuoteTextLbl
@@ -966,7 +967,7 @@ class ProfileVC: UIViewController, UITableViewDataSource, UITableViewDelegate, U
                 let initialSizeTextLbl = cell.tweetContentText.frame.size
                 let rect = tweetHeight.text.boundingRect(with:  CGSize(width: initialSizeTextLbl.width, height: CGFloat.greatestFiniteMagnitude), options: .usesLineFragmentOrigin, context: nil)
                 let viewContent = cell.contentView
-                let size = viewContent.systemLayoutSizeFitting(UILayoutFittingCompressedSize)
+                let size = viewContent.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
                 let finaleSize: CGFloat
                 if tweetHeight.retweetedType.isEmpty {
                     finaleSize = size.height + ceil(rect.size.height) - 12.0 + 1.0
@@ -1106,4 +1107,9 @@ extension ProfileVC: UITableViewDataSourcePrefetching {
             #endif
         }
     }
+}
+
+// Helper function inserted by Swift 4.2 migrator.
+fileprivate func convertFromNSAttributedStringKey(_ input: NSAttributedString.Key) -> String {
+	return input.rawValue
 }

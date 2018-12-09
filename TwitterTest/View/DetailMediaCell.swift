@@ -98,89 +98,89 @@ class DetailMediaCell: UITableViewCell {
         tweet.userPicImage
             .asObserver()
             .observeOn(MainScheduler.instance)
-            .bindNext { [weak self] image in
+            .bind { [weak self] image in
                 guard let s = self else { return }
                 s.userPic.image = image
-            }.addDisposableTo(self.dis)
+            }.disposed(by: self.dis)
         
         tweet.image
             .asObserver()
             .observeOn(MainScheduler.instance)
-            .bindNext { [weak self] image in
+            .bind { [weak self] image in
                 guard let s = self else { return }
                 s.mediaImageView.image = image
-            }.addDisposableTo(self.dis)
+            }.disposed(by: self.dis)
         
         DispatchQueue.global().async {
             tweet.settingsBtn
                 .asObservable()
                 .observeOn(MainScheduler.instance)
-                .bindNext { [weak self] data in
+                .bind { [weak self] data in
                     guard let s = self else { return }
                     if data {
                         s.settingsBtn.setImage(UIImage(named: "settingsBtnDetailPush"), for: .normal)
                     } else {
                         s.settingsBtn.setImage(UIImage(named: "settingsBtnDetail"), for: .normal)
                     }
-                }.addDisposableTo(self.dis)
+                }.disposed(by: self.dis)
             
             tweet.replyBtn
                 .asObservable()
                 .observeOn(MainScheduler.instance)
-                .bindNext { [weak self] data in
+                .bind { [weak self] data in
                     guard let s = self else { return }
                     if data {
                         s.replyBtn.setImage(UIImage(named: "replyBtnDetailPush"), for: .normal)
                     } else {
                         s.replyBtn.setImage(UIImage(named: "replyBtnDetail"), for: .normal)
                     }
-                }.addDisposableTo(self.dis)
+                }.disposed(by: self.dis)
             
             tweet.retweetBtn
                 .asObservable()
                 .observeOn(MainScheduler.instance)
-                .bindNext{ [weak self] data in
+                .bind{ [weak self] data in
                     guard let s = self else { return }
                     if data {
                         s.retweetBtn.setImage(UIImage(named: "retweetBtnDetailPush"), for: .normal)
                     } else {
                         s.retweetBtn.setImage(UIImage(named: "retweetBtnDetail"), for: .normal)
                     }
-                }.addDisposableTo(self.dis)
+                }.disposed(by: self.dis)
             
             tweet.favoriteBtn
                 .asObservable()
                 .observeOn(MainScheduler.instance)
-                .bindNext{ [weak self] data in
+                .bind{ [weak self] data in
                     guard let s = self else { return }
                     if data {
                         s.favoriteBtn.setImage(UIImage(named: "favoriteBtnDetailPush"), for: .normal)
                     } else {
                         s.favoriteBtn.setImage(UIImage(named: "favoriteBtnDetail"), for: .normal)
                     }
-                }.addDisposableTo(self.dis)
+                }.disposed(by: self.dis)
             
             tweet.retweetCount
                 .asObservable()
                 .observeOn(MainScheduler.instance)
-                .bindNext { [weak self] data in
+                .bind { [weak self] data in
                     guard let s = self else { return }
                     var dataString = ""
                     if data > 0 { dataString = String(data) }
                     s.retweetLbl.text = dataString
-                }.addDisposableTo(self.dis)
+                }.disposed(by: self.dis)
             
             tweet.favoriteCount
                 .asObservable()
                 .observeOn(MainScheduler.instance)
-                .bindNext { [weak self] data in
+                .bind { [weak self] data in
                     guard let s = self else { return }
                     var dataString = ""
                     if data > 0 { dataString = String(data) }
                     s.favoriteLbl.text = dataString
-                }.addDisposableTo(self.dis)
+                }.disposed(by: self.dis)
             
-            self.retweetBtn.rx.controlEvent(UIControlEvents.touchDown)
+            self.retweetBtn.rx.controlEvent(UIControl.Event.touchDown)
                 .observeOn(MainScheduler.instance)
                 .subscribe { [weak self] _ in
                     guard let s = self else { return }
@@ -198,9 +198,9 @@ class DetailMediaCell: UITableViewCell {
                         Profile.reloadingProfileTweetsWhenRetweet += 1
                         //tweet.cellData.value = CellData.Retweet(index: s.indexPath!)
                         tweet.cellData.value = CellData.RetweetForDetails(index: s.indexPath!, btn: "retweet")
-                    }}.addDisposableTo(self.dis)
+                    }}.disposed(by: self.dis)
             
-            self.favoriteBtn.rx.controlEvent(UIControlEvents.touchDown)
+            self.favoriteBtn.rx.controlEvent(UIControl.Event.touchDown)
                 .observeOn(MainScheduler.instance)
                 .subscribe { [weak self] _ in
                     guard let s = self else { return }
@@ -217,32 +217,32 @@ class DetailMediaCell: UITableViewCell {
                         //tweet.cellData.value = CellData.Retweet(index: s.indexPath!)
                         tweet.cellData.value = CellData.RetweetForDetails(index: s.indexPath!, btn: "favorite")
                     }
-                }.addDisposableTo(self.dis)
+                }.disposed(by: self.dis)
             
-            self.replyBtn.rx.controlEvent(UIControlEvents.touchDown)
+            self.replyBtn.rx.controlEvent(UIControl.Event.touchDown)
                 .observeOn(MainScheduler.instance)
-                .bindNext { [weak self] _ in
+                .bind { [weak self] _ in
                     guard let s = self else { return }
                     s.replyBtn.setImage(UIImage(named: "replyBtnDetailPushBack"), for: .highlighted)
                     tweet.replyBtn.onNext(true)
                     Profile.reloadingProfileTweetsWhenReply += 1
                     tweet.cellData.value = tweet.userMentions.count > 0 || tweet.retweetTweetID != nil ? CellData.Reply(tweet: tweet, modal: true, replyAll: false) : CellData.Reply(tweet: tweet, modal: false, replyAll: false)
-                }.addDisposableTo(self.dis)
+                }.disposed(by: self.dis)
             
-            self.settingsBtn.rx.controlEvent(UIControlEvents.touchDown)
+            self.settingsBtn.rx.controlEvent(UIControl.Event.touchDown)
                 .observeOn(MainScheduler.instance)
-                .bindNext { [weak self] _ in
+                .bind { [weak self] _ in
                     guard let s = self else { return }
                     s.settingsBtn.setImage(UIImage(named: "settingsBtnDetailPushBack"), for: .highlighted)
                     tweet.settingsBtn.onNext(true)
                     tweet.cellData.value = CellData.Settings(index: s.indexPath!, tweet: tweet, delete: false, viewDetail: false, viewRetweets: false, modal: true)
-                }.addDisposableTo(self.dis)
+                }.disposed(by: self.dis)
             
             tapUserPic.rx.event
                 .observeOn(MainScheduler.instance)
                 .subscribe(onNext: { _ in
                     tweet.cellData.value = CellData.UserPicTap(tweet: tweet)
-                }).addDisposableTo(self.dis)
+                }).disposed(by: self.dis)
             
             tapUrls.rx.event
                 .observeOn(MainScheduler.instance)
@@ -263,7 +263,7 @@ class DetailMediaCell: UITableViewCell {
                     } else {
                         tweet.cellData.value = CellData.TextInvokeSelectRow(index: s.indexPath!)
                     }
-                }).addDisposableTo(self.dis)
+                }).disposed(by: self.dis)
             
             tapMedia.rx.event
                 .observeOn(MainScheduler.instance)
@@ -272,7 +272,7 @@ class DetailMediaCell: UITableViewCell {
                     let instinctConvert = s.convert(s.mediaImageView.frame, to: s.contentView)
                     s.delegate?.extensionProfVC(someTweetsData: SomeTweetsData(convert: instinctConvert, indexPath: s.indexPath))
                     //tweet.cellData.value = CellData.MediaScale(index: s.indexPath!, convert: instinctConvert)
-                }).addDisposableTo(self.dis)
+                }).disposed(by: self.dis)
         }
     }
     func arrowImage() -> UIImageView {

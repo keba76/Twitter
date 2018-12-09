@@ -24,17 +24,23 @@
 //
 
 import Foundation
+import Dispatch
+
+#if os(macOS) || os(iOS)
 import Accounts
+#endif
 
 extension Notification.Name {
-    static let SwifterCallbackNotification: Notification.Name = Notification.Name(rawValue: "SwifterCallbackNotificationName")
+    static let swifterCallback = Notification.Name(rawValue: "Swifter.CallbackNotificationName")
 }
 
 // MARK: - Twitter URL
 public enum TwitterURL {
+	
     case api
     case upload
     case stream
+	case publish
     case userStream
     case siteStream
     case oauth
@@ -47,9 +53,32 @@ public enum TwitterURL {
         case .userStream:   return URL(string: "https://userstream.twitter.com/1.1/")!
         case .siteStream:   return URL(string: "https://sitestream.twitter.com/1.1/")!
         case .oauth:        return URL(string: "https://api.twitter.com/")!
+		case .publish:		return URL(string: "https://publish.twitter.com/")!
         }
     }
     
+}
+
+// MARK: - Tweet Mode
+public enum TweetMode {
+	
+    case `default`
+    case extended
+    case compat
+    case other(String)
+    
+    var stringValue: String? {
+        switch self {
+        case .default:
+            return nil
+        case .extended:
+            return "extended"
+        case .compat:
+            return "compat"
+        case .other(let string):
+            return string
+        }
+    }
 }
 
 public class Swifter {
@@ -59,7 +88,9 @@ public class Swifter {
     public typealias SuccessHandler = (JSON) -> Void
     public typealias CursorSuccessHandler = (JSON, _ previousCursor: String?, _ nextCursor: String?) -> Void
     public typealias JSONSuccessHandler = (JSON, _ response: HTTPURLResponse) -> Void
-    public typealias FailureHandler = (_ error: Error) -> Void
+	public typealias SearchResultHandler = (JSON, _ searchMetadata: JSON) -> Void
+	public typealias FailureHandler = (_ error: Error) -> Void
+	
 
     internal struct CallbackNotification {
         static let optionsURLKey = "SwifterCallbackNotificationOptionsURLKey"
@@ -68,11 +99,13 @@ public class Swifter {
     internal struct DataParameters {
         static let dataKey = "SwifterDataParameterKey"
         static let fileNameKey = "SwifterDataParameterFilename"
+		static let jsonDataKey = "SwifterDataJSONDataParameterKey"
     }
 
     // MARK: - Properties
     
     public var client: SwifterClientProtocol
+    private var chunkBuffer: String?
 
     // MARK: - Initializers
     
@@ -83,12 +116,15 @@ public class Swifter {
     }
 
     public init(consumerKey: String, consumerSecret: String, oauthToken: String, oauthTokenSecret: String) {
-        self.client = OAuthClient(consumerKey: consumerKey, consumerSecret: consumerSecret , accessToken: oauthToken, accessTokenSecret: oauthTokenSecret)
+        self.client = OAuthClient(consumerKey: consumerKey, consumerSecret: consumerSecret,
+								  accessToken: oauthToken, accessTokenSecret: oauthTokenSecret)
     }
 
+    #if os(macOS) || os(iOS)
     public init(account: ACAccount) {
         self.client = AccountsClient(account: account)
     }
+    #endif
 
     deinit {
         NotificationCenter.default.removeObserver(self)
@@ -97,27 +133,22 @@ public class Swifter {
     // MARK: - JSON Requests
     
     @discardableResult
-    internal func jsonRequest(path: String, baseURL: TwitterURL, method: HTTPMethodType, parameters: Dictionary<String, Any>, uploadProgress: HTTPRequest.UploadProgressHandler? = nil, downloadProgress: JSONSuccessHandler? = nil, success: JSONSuccessHandler? = nil, failure: HTTPRequest.FailureHandler? = nil) -> HTTPRequest {
-        let jsonDownloadProgressHandler: HTTPRequest.DownloadProgressHandler = { data, _, _, response in
-
-            guard let _ = downloadProgress else { return }
-            
-            guard let jsonResult = try? JSON.parse(jsonData: data) else {
-                let jsonString = String(data: data, encoding: .utf8)
-                let jsonChunks = jsonString!.components(separatedBy: "\r\n")
-                
-                for chunk in jsonChunks where !chunk.utf16.isEmpty {
-                    guard let chunkData = chunk.data(using: .utf8), let jsonResult = try? JSON.parse(jsonData: chunkData) else { continue }
-                    downloadProgress?(jsonResult, response)
-                }
-                return
-            }
-            
-            downloadProgress?(jsonResult, response)
+    internal func jsonRequest(path: String,
+							  baseURL: TwitterURL,
+							  method: HTTPMethodType,
+							  parameters: [String: Any],
+							  uploadProgress: HTTPRequest.UploadProgressHandler? = nil,
+							  downloadProgress: JSONSuccessHandler? = nil,
+							  success: JSONSuccessHandler? = nil,
+							  failure: HTTPRequest.FailureHandler? = nil) -> HTTPRequest {
+		
+        let jsonDownloadProgressHandler: HTTPRequest.DownloadProgressHandler = { [weak self] data, _, _, response in
+			if let progress = downloadProgress {
+				self?.handleStreamProgress(data: data, response: response, handler: progress)
+			}
         }
-
+		
         let jsonSuccessHandler: HTTPRequest.SuccessHandler = { data, response in
-
             DispatchQueue.global(qos: .utility).async {
                 do {
                     let jsonResult = try JSON.parse(jsonData: data)
@@ -126,27 +157,87 @@ public class Swifter {
                     }
                 } catch {
                     DispatchQueue.main.async {
-                        failure?(error)
+                        if case 200...299 = response.statusCode, data.isEmpty {
+						    success?(JSON("{}"), response)
+                        } else {
+                            failure?(error)
+                        }
                     }
                 }
             }
         }
-
-        if method == .GET {
-            return self.client.get(path, baseURL: baseURL, parameters: parameters, uploadProgress: uploadProgress, downloadProgress: jsonDownloadProgressHandler, success: jsonSuccessHandler, failure: failure)
-        } else {
-            return self.client.post(path, baseURL: baseURL, parameters: parameters, uploadProgress: uploadProgress, downloadProgress: jsonDownloadProgressHandler, success: jsonSuccessHandler, failure: failure)
+		
+		switch method {
+		case .GET:
+			return self.client.get(path, baseURL: baseURL, parameters: parameters,
+								   uploadProgress: uploadProgress, downloadProgress: jsonDownloadProgressHandler,
+								   success: jsonSuccessHandler, failure: failure)
+		case .POST:
+			return self.client.post(path, baseURL: baseURL, parameters: parameters,
+									uploadProgress: uploadProgress, downloadProgress: jsonDownloadProgressHandler,
+									success: jsonSuccessHandler, failure: failure)
+		case .DELETE:
+			return self.client.delete(path, baseURL: baseURL, parameters: parameters,
+									  success: jsonSuccessHandler, failure: failure)
+		default:
+			fatalError("This HTTP Method is not supported")
+		}
+    }
+    
+    private func handleStreamProgress(data: Data, response: HTTPURLResponse, handler: JSONSuccessHandler? = nil) {
+        let chunkSeparator = "\r\n"
+        if var jsonString = String(data: data, encoding: .utf8) {
+            if let remaining = chunkBuffer {
+                jsonString = remaining + jsonString
+            }
+            let jsonChunks = jsonString.components(separatedBy: chunkSeparator)
+            for chunk in jsonChunks where !chunk.utf16.isEmpty {
+                if let chunkData = chunk.data(using: .utf8) {
+                    guard let jsonResult = try? JSON.parse(jsonData: chunkData) else {
+                        self.chunkBuffer = chunk
+                        return
+                    }
+                    chunkBuffer = nil
+                    handler?(jsonResult, response)
+                }
+            }
         }
     }
 
     @discardableResult
-    internal func getJSON(path: String, baseURL: TwitterURL, parameters: Dictionary<String, Any>, uploadProgress: HTTPRequest.UploadProgressHandler? = nil, downloadProgress: JSONSuccessHandler? = nil, success: JSONSuccessHandler?, failure: HTTPRequest.FailureHandler?) -> HTTPRequest {
-        return self.jsonRequest(path: path, baseURL: baseURL, method: .GET, parameters: parameters, uploadProgress: uploadProgress, downloadProgress: downloadProgress, success: success, failure: failure)
+    internal func getJSON(path: String,
+						  baseURL: TwitterURL,
+						  parameters: [String: Any],
+						  uploadProgress: HTTPRequest.UploadProgressHandler? = nil,
+						  downloadProgress: JSONSuccessHandler? = nil,
+						  success: JSONSuccessHandler?,
+						  failure: HTTPRequest.FailureHandler?) -> HTTPRequest {
+        return self.jsonRequest(path: path, baseURL: baseURL, method: .GET, parameters: parameters,
+								uploadProgress: uploadProgress, downloadProgress: downloadProgress,
+								success: success, failure: failure)
     }
 
     @discardableResult
-    internal func postJSON(path: String, baseURL: TwitterURL, parameters: Dictionary<String, Any>, uploadProgress: HTTPRequest.UploadProgressHandler? = nil, downloadProgress: JSONSuccessHandler? = nil, success: JSONSuccessHandler?, failure: HTTPRequest.FailureHandler?) -> HTTPRequest {
-        return self.jsonRequest(path: path, baseURL: baseURL, method: .POST, parameters: parameters, uploadProgress: uploadProgress, downloadProgress: downloadProgress, success: success, failure: failure)
+    internal func postJSON(path: String,
+						   baseURL: TwitterURL,
+						   parameters: [String: Any],
+						   uploadProgress: HTTPRequest.UploadProgressHandler? = nil,
+						   downloadProgress: JSONSuccessHandler? = nil,
+						   success: JSONSuccessHandler?,
+						   failure: HTTPRequest.FailureHandler?) -> HTTPRequest {
+        return self.jsonRequest(path: path, baseURL: baseURL, method: .POST, parameters: parameters,
+								uploadProgress: uploadProgress, downloadProgress: downloadProgress,
+								success: success, failure: failure)
     }
+	
+	@discardableResult
+	internal func deleteJSON(path: String,
+						   	baseURL: TwitterURL,
+							parameters: [String: Any],
+						    success: JSONSuccessHandler?,
+						    failure: HTTPRequest.FailureHandler?) -> HTTPRequest {
+		return self.jsonRequest(path: path, baseURL: baseURL, method: .DELETE, parameters: parameters,
+								success: success, failure: failure)
+	}
     
 }

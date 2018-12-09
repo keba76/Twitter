@@ -18,7 +18,7 @@ class NVActivityIndicatorAnimationLineSpinFadeLoader: NVActivityIndicatorAnimati
         let duration: CFTimeInterval = 1.2
         let beginTime = CACurrentMediaTime()
         let beginTimes: [CFTimeInterval] = [0.12, 0.24, 0.36, 0.48, 0.6, 0.72, 0.84, 0.96]
-        let timingFunction = CAMediaTimingFunction(name: kCAMediaTimingFunctionEaseInEaseOut)
+        let timingFunction = CAMediaTimingFunction(name: CAMediaTimingFunctionName.easeInEaseOut)
         
         // Animation
         let animation = CAKeyframeAnimation(keyPath: "opacity")
@@ -32,7 +32,7 @@ class NVActivityIndicatorAnimationLineSpinFadeLoader: NVActivityIndicatorAnimati
         
         // Draw lines
         for i in 0 ..< 8 {
-            let line = lineAt(angle: CGFloat(M_PI_4 * Double(i)),
+            let line = lineAt(angle: CGFloat(Double.pi/4 * Double(i)),
                               size: lineSize,
                               origin: CGPoint(x: x, y: y),
                               containerSize: size,
@@ -63,7 +63,7 @@ class NVActivityIndicatorAnimationLineSpinFadeLoader: NVActivityIndicatorAnimati
         lineContainer.frame = lineContainerFrame
         line.frame = lineFrame
         lineContainer.addSublayer(line)
-        lineContainer.sublayerTransform = CATransform3DMakeRotation(CGFloat(M_PI_2) + angle, 0, 0, 1)
+        lineContainer.sublayerTransform = CATransform3DMakeRotation(CGFloat(Double.pi/2) + angle, 0, 0, 1)
         
         return lineContainer
     }

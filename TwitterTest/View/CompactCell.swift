@@ -84,64 +84,64 @@ class CompactCell: UITableViewCell {
         tweet.userPicImage
             .asObserver()
             .observeOn(MainScheduler.instance)
-            .bindNext { [weak self] image in
+            .bind { [weak self] image in
                 guard let s = self else { return }
                 s.userPic.image = image
-            }.addDisposableTo(self.dis)
+            }.disposed(by: self.dis)
         
         
         DispatchQueue.global().async {
             tweet.settingsBtn
                 .asObservable()
                 .observeOn(MainScheduler.instance)
-                .bindNext { [weak self] data in
+                .bind { [weak self] data in
                     guard let s = self else { return }
                     s.settingsBtn.isSelected = data
-                }.addDisposableTo(self.dis)
+                }.disposed(by: self.dis)
             
             tweet.replyBtn
                 .asObservable()
                 .observeOn(MainScheduler.instance)
-                .bindNext { [weak self] data in
+                .bind { [weak self] data in
                     guard let s = self else { return }
                     s.replyBtn.isSelected = data
-                }.addDisposableTo(self.dis)
+                }.disposed(by: self.dis)
             
             tweet.retweetBtn
                 .asObservable()
                 .observeOn(MainScheduler.instance)
-                .bindNext{ [weak self] data in
+                .bind{ [weak self] data in
                     guard let s = self else { return }
                     s.retweetBtn.isSelected = data
-                }.addDisposableTo(self.dis)
+                }.disposed(by: self.dis)
             
             tweet.favoriteBtn
                 .asObservable()
                 .observeOn(MainScheduler.instance)
-                .bindNext{ [weak self] data in
+                .bind{ [weak self] data in
                     guard let s = self else { return }
                     s.favoriteBtn.isSelected = data
-                }.addDisposableTo(self.dis)
+                }.disposed(by: self.dis)
             
             tweet.retweetCount
                 .asObservable()
                 .observeOn(MainScheduler.instance)
-                .bindNext { [weak self] data in
+                .bind { [weak self] data in
                     guard let s = self else { return }
                     var dataString = ""
                     if data > 0 { dataString = String(data) }
                     s.retweetLbl.text = dataString
-                }.addDisposableTo(self.dis)
+                }.disposed(by: self.dis)
             
             tweet.favoriteCount
                 .asObservable()
                 .observeOn(MainScheduler.instance)
-                .bindNext { [weak self] data in
+                .bind { [weak self] data in
                     guard let s = self else { return }
                     var dataString = ""
                     if data > 0 { dataString = String(data) }
                     s.favoriteLbl.text = dataString
-                }.addDisposableTo(self.dis)
+                }.disposed(by: self.dis)
             
             self.retweetBtn.rx.tap
                 .observeOn(MainScheduler.instance)
@@ -159,11 +159,11 @@ class CompactCell: UITableViewCell {
                         Profile.tweetID[tweet.tweetID] = true
                         Profile.reloadingProfileTweetsWhenRetweet += 1
                         tweet.cellData.value = CellData.Retweet(index: s.indexPath!)
-                    }}.addDisposableTo(self.dis)
+                    }}.disposed(by: self.dis)
             
             self.favoriteBtn.rx.tap
                 .observeOn(MainScheduler.instance)
-                .bindNext { [weak self] _ in
+                .bind { [weak self] _ in
                     guard let s = self else { return }
                     if s.favoriteBtn.isSelected {
                         s.favoriteBtn.deselect()
@@ -176,11 +176,11 @@ class CompactCell: UITableViewCell {
                         Profile.tweetIDForFavorite[tweet.tweetID] = true
                         s.delegate?.extensionProfVC(someTweetsData: SomeTweetsData(indexPath: s.indexPath, switchBool: true))
                     }
-                }.addDisposableTo(self.dis)
+                }.disposed(by: self.dis)
             
             self.replyBtn.rx.tap
                 .observeOn(MainScheduler.instance)
-                .bindNext { [weak self] _ in
+                .bind { [weak self] _ in
                     guard let s = self else { return }
                     if !s.replyBtn.isSelected { s.replyBtn.select() }
                     tweet.replyBtn.onNext(true)
@@ -190,22 +190,22 @@ class CompactCell: UITableViewCell {
                     } else {
                         tweet.cellData.value = tweet.userMentions.count > 0 || tweet.retweetTweetID != nil ? CellData.Reply(tweet: tweet, modal: true, replyAll: false) : CellData.Reply(tweet: tweet, modal: false, replyAll: false)
                     }
-                }.addDisposableTo(self.dis)
+                }.disposed(by: self.dis)
             
             self.settingsBtn.rx.tap
                 .observeOn(MainScheduler.instance)
-                .bindNext { [weak self] _ in
+                .bind { [weak self] _ in
                     guard let s = self else { return }
                     if !s.settingsBtn.isSelected { s.settingsBtn.select() }
                     tweet.settingsBtn.onNext(true)
                     tweet.cellData.value = CellData.Settings(index: s.indexPath!, tweet: tweet, delete: false, viewDetail: false, viewRetweets: false, modal: true)
-                }.addDisposableTo(self.dis)
+                }.disposed(by: self.dis)
             
             tapUserPic.rx.event
                 .observeOn(MainScheduler.instance)
                 .subscribe(onNext: { _ in
                     tweet.cellData.value = CellData.UserPicTap(tweet: tweet)
-                }).addDisposableTo(self.dis)
+                }).disposed(by: self.dis)
             
             tapUrls.rx.event
                 .observeOn(MainScheduler.instance)
@@ -226,7 +226,7 @@ class CompactCell: UITableViewCell {
                     } else {
                         tweet.cellData.value = CellData.TextInvokeSelectRow(index: s.indexPath!)
                     }
-                }).addDisposableTo(self.dis)
+                }).disposed(by: self.dis)
         }
     }
 }

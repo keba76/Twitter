@@ -32,9 +32,9 @@ class ProfileHeader: UIView {
     
     func profileSetConfigure() {
         
-        settingsBtn.rx.controlEvent(UIControlEvents.touchDown).subscribe(onNext: { [weak self] _ in
+        settingsBtn.rx.controlEvent(UIControl.Event.touchDown).subscribe(onNext: { [weak self] _ in
             self?.settingsBtn.setImage(UIImage(named: "settingsPushBtn"), for: .highlighted)
-        }).addDisposableTo(dis)
+        }).disposed(by: self.dis)
         self.profileImageView.layer.cornerRadius = 5.0
         self.profileImageView.clipsToBounds = true
         self.profileImageSuperView.layer.cornerRadius = 5.0
@@ -44,9 +44,9 @@ class ProfileHeader: UIView {
         if user?.imageBanner == nil {
             self.backgroundImage.image = UIImage.getEmptyImageWithColor(color: UIColor(red: 3/255, green: 169/255, blue: 244/255, alpha: 1))
         } else {
-            SDWebImageManager.shared().downloadImage(with: user?.imageBanner, options: .continueInBackground, progress: { (_ , _) in
+            SDWebImageManager.shared().loadImage(with: user?.imageBanner, options: .continueInBackground, progress: { (_ , _, _) in
                 self.backgroundImage.image = nil
-            }, completed: { (image, error, cache, _ , _) in
+            }, completed: { (image, error, cache, _ , _, _) in
                 DispatchQueue.main.async {
                     self.backgroundImage.image = image
                     self.imageBanner = image
@@ -54,15 +54,15 @@ class ProfileHeader: UIView {
             })
         }
         
-        SDWebImageManager.shared().downloadImage(with: user?.avatar, progress: { (_ , _) in
-        }) { (image, error, cache , _ , _) in
+        SDWebImageManager.shared().loadImage(with: user?.avatar, progress: { (_ , _, _) in
+        }) { (image, error, cache , _ , _, _) in
             
             if image == nil {
                 let urlString = self.user?.avatar?.absoluteString
                 if let url = urlString, url.contains("profile_images") {
                     let newUrl = url.replace(target: ".jpg", withString: "_bigger.jpg")
-                    SDWebImageManager.shared().downloadImage(with: URL(string: newUrl), progress: { (_ , _) in
-                    }) { (image, error, cache , _ , _) in
+                    SDWebImageManager.shared().loadImage(with: URL(string: newUrl), progress: { (_ , _, _) in
+                    }) { (image, error, cache , _ , _, _) in
                         DispatchQueue.main.async {
                         self.profileImageView.image = image
                         self.images = image
@@ -80,7 +80,7 @@ class ProfileHeader: UIView {
         settingsBtn.rx.tap.asObservable().subscribe(onNext: { [weak self] _ in
             guard let s = self else { return }
             s.user?.userData.value = UserData.TapSettingsBtn(user: s.user!, modal: true, showMute: false, publicReply: false, mute: false, follow: false)
-        }).addDisposableTo(dis)
+        }).disposed(by: self.dis)
         
         let tapUserPic = UITapGestureRecognizer()
         tapUserPic.rx.event.subscribe(onNext: {[weak self] _ in
@@ -97,7 +97,7 @@ class ProfileHeader: UIView {
             
             s.user?.userData.value = UserData.ImageUserScale(data: SomeTweetsData(convert: finalFrame))
             
-        }).addDisposableTo(dis)
+        }).disposed(by: self.dis)
         self.profileImageView.isUserInteractionEnabled = true
         self.profileImageView.addGestureRecognizer(tapUserPic)
         
@@ -126,7 +126,7 @@ class ProfileHeader: UIView {
             
             s.user?.userData.value = UserData.ImageBannerScale(data: SomeTweetsData(convert: finalFrameBanner, frameImage: finalFrameImage, frameBackImage: finalFrameBackImage))
             
-        }).addDisposableTo(dis)
+        }).disposed(by: self.dis)
         self.backgroundImage.isUserInteractionEnabled = true
         self.backgroundImage.addGestureRecognizer(tapBackgroundImage)
     }

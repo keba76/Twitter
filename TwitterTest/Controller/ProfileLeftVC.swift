@@ -29,12 +29,12 @@ class ProfileLeftVC: UIViewController, UIViewControllerTransitioningDelegate {
         
         connection.layer.cornerRadius = 2.0
         connection.clipsToBounds = true
-        followersBtn.rx.controlEvent(UIControlEvents.touchDown).subscribe(onNext: { [weak self] _ in
+        followersBtn.rx.controlEvent(UIControl.Event.touchDown).subscribe(onNext: { [weak self] _ in
             self?.followersBtn.setImage(UIImage(named: "followersPushBtn"), for: .highlighted)
-        }).addDisposableTo(dis)
-        followingBtn.rx.controlEvent(UIControlEvents.touchDown).subscribe(onNext: { [weak self] _ in
+        }).disposed(by: self.dis)
+        followingBtn.rx.controlEvent(UIControl.Event.touchDown).subscribe(onNext: { [weak self] _ in
             self?.followingBtn.setImage(UIImage(named: "followingPushBtn"), for: .highlighted)
-        }).addDisposableTo(dis)
+        }).disposed(by: self.dis)
         
         self.stuffingViews(data: Profile.arrayIdFollowers)
     }
@@ -82,7 +82,7 @@ class InsetLabel: UILabel {
     
     override func drawText(in rect: CGRect) {
         let insets: UIEdgeInsets = UIEdgeInsets(top: topInset, left: leftInset, bottom: bottomInset, right: rightInset)
-        super.drawText(in: UIEdgeInsetsInsetRect(rect, insets))
+        super.drawText(in: rect.inset(by: insets))
     }
     
     override public var intrinsicContentSize: CGSize {

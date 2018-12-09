@@ -30,7 +30,7 @@ class SlideInPresentationController: UIPresentationController {
         let recognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap(recognizer:)))
         dimmingView.addGestureRecognizer(recognizer)
     }
-    dynamic func handleTap(recognizer: UITapGestureRecognizer) {
+    @objc dynamic func handleTap(recognizer: UITapGestureRecognizer) {
         presentingViewController.dismiss(animated: true)
     }
     
@@ -119,7 +119,7 @@ extension SlideInPresentationAnimator: UIViewControllerAnimatedTransitioning {
         var duration: TimeInterval
         var springWithDamping: CGFloat
         var initialSpringVelocity: CGFloat
-        var option: UIViewAnimationOptions = []
+        var option: UIView.AnimationOptions = []
         
         if self.isPresentation {
             duration = transitionDuration(using: transitionContext)

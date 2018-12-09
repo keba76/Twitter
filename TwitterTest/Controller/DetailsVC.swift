@@ -56,7 +56,7 @@
             tweetDetails?.cellData.asObservable().subscribe(onNext: { [weak self] data in
                 guard let s = self else { return }
                 s.varietyCellAction(data: data)
-            }).addDisposableTo(self.dis)
+            }).disposed(by: self.dis)
             tweetChain.append(tweetDetails!)
             tableView.delegate = self
             tableView.dataSource = self
@@ -133,7 +133,7 @@
                     x.cellData.asObservable().subscribe(onNext: { [weak self] data in
                         guard let s = self else { return }
                         s.varietyCellAction(data: data)
-                    }).addDisposableTo(self.dis)
+                    }).disposed(by: self.dis)
                 }
                 self.tweetChain.append(contentsOf: tweets)
                 var index = [IndexPath]()
@@ -191,7 +191,7 @@
                     twee.cellData.asObservable().subscribe(onNext: { [weak self] data in
                         guard let s = self else { return }
                         s.varietyCellAction(data: data)
-                    }).addDisposableTo(self.dis)
+                    }).disposed(by: self.dis)
                     self.arrayConversation.insert(twee, at: 0)
                     if !twee.replyConversation.isEmpty {
                         self.reloadDataConversation(tweetID: twee.replyConversation)
@@ -339,11 +339,11 @@
                             controller.attributeText = data
                             controller.tweet = twee
                         })
-                        SDWebImageManager.shared().downloadImage(with: twee.userAvatar, progress: { (_, _) in }, completed: { (image, error, cache, _, _) in
+                        SDWebImageManager.shared().loadImage(with: twee.userAvatar, progress: { (_, _, _) in }, completed: { (image, error, cache, _, _, _) in
                             twee.userPicImage.onNext(image!)
                         })
                         if let url = twee.mediaImageURLs.first {
-                            SDWebImageManager.shared().downloadImage(with: url, progress: { (_, _) in }, completed: { (image, error, cache, _, _) in
+                            SDWebImageManager.shared().loadImage(with: url, progress: { (_, _, _) in }, completed: { (image, error, cache, _, _, _) in
                                 twee.image.onNext(image!)
                             })
                         }
@@ -399,13 +399,13 @@
                     controller.tweet = tweet
                     controller.quoteTap = true
                 })
-                SDWebImageManager.shared().downloadImage(with: tweet.userAvatar, progress: { (_, _) in }, completed: { (image, error, cache, _, _) in
+                SDWebImageManager.shared().loadImage(with: tweet.userAvatar, progress: { (_, _, _) in }, completed: { (image, error, cache, _, _, _) in
                     if image == nil {
                         let urlString = tweet.userAvatar.absoluteString
                         if urlString.contains("profile_images") {
                             let newUrl = urlString.replace(target: ".jpg", withString: "_bigger.jpg")
-                            SDWebImageManager.shared().downloadImage(with: URL(string: newUrl), progress: { (_ , _) in
-                            }) { (image, error, cache , _ , _) in
+                            SDWebImageManager.shared().loadImage(with: URL(string: newUrl), progress: { (_, _, _) in
+                            }) { (image, error, cache , _ , _, _) in
                                 tweet.userPicImage.onNext(image!)
                             }
                         }
@@ -414,7 +414,7 @@
                     }
                 })
                 if let url = tweet.mediaImageURLs.first {
-                    SDWebImageManager.shared().downloadImage(with: url, progress: { (_, _) in }, completed: { (image, error, cache, _, _) in
+                    SDWebImageManager.shared().loadImage(with: url, progress: { (_, _, _) in }, completed: { (image, error, cache, _, _, _) in
                         tweet.image.onNext(image!)
                     })
                 }
@@ -579,11 +579,11 @@
             let text = tweet.text
             let attribute = NSMutableAttributedString(attributedString: text)
             attribute.beginEditing()
-            attribute.enumerateAttribute(NSFontAttributeName, in: NSRange(location: 0, length: text.length), using: { (value, range, stop) in
+            attribute.enumerateAttribute(NSAttributedString.Key(rawValue: convertFromNSAttributedStringKey(NSAttributedString.Key.font)), in: NSRange(location: 0, length: text.length), using: { (value, range, stop) in
                 if let oldFont = value as? UIFont {
                     let newFont = oldFont.withSize(14.5)
-                    attribute.removeAttribute(NSFontAttributeName, range: range)
-                    attribute.addAttribute(NSFontAttributeName, value: newFont, range: range)
+                    attribute.removeAttribute(NSAttributedString.Key.font, range: range)
+                    attribute.addAttribute(NSAttributedString.Key.font, value: newFont, range: range)
                 }
             })
             attribute.endEditing()
@@ -650,7 +650,7 @@
                         let retweetCount = try! tweetHeight.retweetCount.value()
                         let favoriteCount = try! tweetHeight.favoriteCount.value()
                         if retweetCount == 0 && favoriteCount == 0 { delta = 14.0 }
-                        let size = viewContent.systemLayoutSizeFitting(UILayoutFittingCompressedSize)
+                        let size = viewContent.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
                         let finaleSize = size.height + ceil(rect.size.height) + 1.0 - delta
                         if row < count {
                             heightCell.insert(finaleSize, at: row)
@@ -668,7 +668,7 @@
                         let retweetCount = try! tweetHeight.retweetCount.value()
                         let favoriteCount = try! tweetHeight.favoriteCount.value()
                         if retweetCount == 0 && favoriteCount == 0 { delta = 14.0 }
-                        let size = viewContent.systemLayoutSizeFitting(UILayoutFittingCompressedSize)
+                        let size = viewContent.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
                         let finaleSize: CGFloat = size.height + ceil(rect.size.height) + 1.0 - delta
                         if row < count {
                             heightCell[row] = finaleSize
@@ -688,7 +688,7 @@
                         let initialSizeTextLbl = cell.tweetContentText.frame.size
                         let rect = tweetHeight.text.boundingRect(with:  CGSize(width: initialSizeTextLbl.width, height: CGFloat.greatestFiniteMagnitude), options: .usesLineFragmentOrigin, context: nil)
                         let viewContent = cell.contentView
-                        let size = viewContent.systemLayoutSizeFitting(UILayoutFittingCompressedSize)
+                        let size = viewContent.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
                         let finaleSize: CGFloat
                         if tweetHeight.retweetedType.isEmpty {
                             finaleSize = size.height + ceil(rect.size.height) - 12.0 + 1.0
@@ -715,7 +715,7 @@
                             sizeQuoteTextLbl = ceil(rectQuote.size.height) + 1.0
                         }
                         let viewContent = cell.contentView
-                        let size = viewContent.systemLayoutSizeFitting(UILayoutFittingCompressedSize)
+                        let size = viewContent.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
                         let finaleSize: CGFloat
                         if tweetHeight.retweetedType.isEmpty {
                             finaleSize = size.height + ceil(rect.size.height) - 12.0 + 1.0 + sizeQuoteTextLbl
@@ -735,7 +735,7 @@
                         let initialSizeTextLbl = cell.tweetContentText.frame.size
                         let rect = tweetHeight.text.boundingRect(with:  CGSize(width: initialSizeTextLbl.width, height: CGFloat.greatestFiniteMagnitude), options: .usesLineFragmentOrigin, context: nil)
                         let viewContent = cell.contentView
-                        let size = viewContent.systemLayoutSizeFitting(UILayoutFittingCompressedSize)
+                        let size = viewContent.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
                         let finaleSize: CGFloat
                         if tweetHeight.retweetedType.isEmpty {
                             finaleSize = size.height + ceil(rect.size.height) - 12.0 + 1.0
@@ -927,3 +927,8 @@
         func imageWindowFrame() -> CGRect { return (dataMediaScale?.convert)! }
     }
     
+
+// Helper function inserted by Swift 4.2 migrator.
+fileprivate func convertFromNSAttributedStringKey(_ input: NSAttributedString.Key) -> String {
+	return input.rawValue
+}

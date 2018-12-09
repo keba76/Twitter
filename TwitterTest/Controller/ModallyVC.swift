@@ -96,7 +96,7 @@ class ModallyVC: UIViewController {
             default:
                 break
             }
-        }).addDisposableTo(dis)
+        }).disposed(by: self.dis)
         
         thirdBtn.rx.tap.asObservable().subscribe(onNext: { [unowned self] _ in
             switch self.variety! {
@@ -122,7 +122,7 @@ class ModallyVC: UIViewController {
             default:
                 break
             }
-        }).addDisposableTo(dis)
+        }).disposed(by: self.dis)
         
         secondBtn.rx.tap.asObservable().subscribe(onNext: { [unowned self] _ in
             switch self.variety! {
@@ -149,7 +149,7 @@ class ModallyVC: UIViewController {
             default:
                 break
             }
-        }).addDisposableTo(dis)
+        }).disposed(by: self.dis)
         cancelBtn.rx.tap.asObservable().subscribe(onNext: {
             guard let type = self.variety else { return }
             switch type {
@@ -164,7 +164,7 @@ class ModallyVC: UIViewController {
             self.dismiss(animated: true, completion: {
                 self.delegateModally?.extensionModally(variety: VarietyModally.cancel)
             })
-        }).addDisposableTo(dis)
+        }).disposed(by: self.dis)
     }
 }
 

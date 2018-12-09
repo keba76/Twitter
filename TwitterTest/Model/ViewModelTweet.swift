@@ -63,7 +63,7 @@ class ViewModelTweet {
                 retweetCount.onNext(temp)
                 retweetBtn.onNext(true)
             } else {
-                TwitterClient.swifter.UnretweetTweet(forID: tweetID)
+                TwitterClient.swifter.unretweetTweet(forID: tweetID)
                 let temp = try! retweetCount.value() - 1
                 retweetCount.onNext(temp)
                 retweetBtn.onNext(false)
@@ -84,12 +84,12 @@ class ViewModelTweet {
     var favorited: Bool {
         didSet {
             if favorited {
-                TwitterClient.swifter.favouriteTweet(forID: tweetID)
+                TwitterClient.swifter.favoriteTweet(forID: tweetID)
                 let temp = try! favoriteCount.value() + 1
                 favoriteCount.onNext(temp)
                 favoriteBtn.onNext(true)
             } else {
-                TwitterClient.swifter.unfavouriteTweet(forID: tweetID)
+                TwitterClient.swifter.unfavoriteTweet(forID: tweetID)
                 let temp = try! favoriteCount.value() - 1
                 favoriteCount.onNext(temp)
                 favoriteBtn.onNext(false)

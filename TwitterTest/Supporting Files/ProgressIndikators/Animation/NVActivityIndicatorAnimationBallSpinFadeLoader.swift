@@ -37,14 +37,14 @@ class NVActivityIndicatorAnimationBallSpinFadeLoader: NVActivityIndicatorAnimati
         let animation = CAAnimationGroup()
         
         animation.animations = [scaleAnimation, opacityAnimaton]
-        animation.timingFunction = CAMediaTimingFunction(name: kCAMediaTimingFunctionLinear)
+        animation.timingFunction = CAMediaTimingFunction(name: CAMediaTimingFunctionName.linear)
         animation.duration = duration
         animation.repeatCount = HUGE
         animation.isRemovedOnCompletion = false
         
         // Draw circles
         for i in 0 ..< 8 {
-            let circle = circleAt(angle: CGFloat(M_PI_4 * Double(i)),
+            let circle = circleAt(angle: CGFloat(Double.pi/4 * Double(i)),
                                   size: circleSize,
                                   origin: CGPoint(x: x, y: y),
                                   containerSize: size,

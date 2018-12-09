@@ -7,7 +7,6 @@
  //
  
  import Foundation
- import SimpleAuth
  import Social
  import UIKit
  import Accounts
@@ -115,7 +114,7 @@
         let failureHandler: (Error) -> Void = { error in
             print(error.localizedDescription)
         }
-        TwitterClient.swifter.getMentionsTimlineTweets(count: 42, maxID: maxID, success: { json in
+        TwitterClient.swifter.getMentionsTimelineTweets(count: 42, maxID: maxID, success: { json in
             guard let twee = json.array else { return }
             print(twee)
             var viewModel =  twee
@@ -134,7 +133,7 @@
         let failureHandler: (Error) -> Void = { error in
             complited(nil)
         }
-        TwitterClient.swifter.getTweet(forID: tweetID, success: { json in
+        TwitterClient.swifter.getTweet(for: tweetID, success: { json in
             let tweet = ViewModelTweet(modelTweet: ModelTweet(parse: Tweet(dict: json)))
             complited(tweet)
         }, failure: failureHandler)

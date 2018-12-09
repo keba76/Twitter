@@ -24,10 +24,12 @@
 //
 
 import Foundation
+import CoreFoundation
+import Dispatch
 
 #if os(iOS)
     import UIKit
-#else
+#elseif os(macOS)
     import AppKit
 #endif
 
@@ -60,13 +62,15 @@ public class HTTPRequest: NSObject, URLSessionDataDelegate {
     let HTTPMethod: HTTPMethodType
 
     var request: URLRequest?
-    var dataTask: URLSessionDataTask!
+    var dataTask: URLSessionDataTask?
 
     var headers: Dictionary<String, String> = [:]
-    var parameters: Dictionary<String, Any>
+    var parameters: [String: Any]
     var encodeParameters: Bool
 
     var uploadData: [DataUpload] = []
+	
+	var jsonBody: Data?
 
     var dataEncoding: String.Encoding = .utf8
 
@@ -82,7 +86,7 @@ public class HTTPRequest: NSObject, URLSessionDataDelegate {
     var successHandler: SuccessHandler?
     var failureHandler: FailureHandler?
 
-    public init(url: URL, method: HTTPMethodType = .GET, parameters: Dictionary<String, Any> = [:]) {
+    public init(url: URL, method: HTTPMethodType = .GET, parameters: [String: Any] = [:]) {
         self.url = url
         self.HTTPMethod = method
         self.parameters = parameters
@@ -109,20 +113,21 @@ public class HTTPRequest: NSObject, URLSessionDataDelegate {
             for (key, value) in headers {
                 self.request!.setValue(value, forHTTPHeaderField: key)
             }
-            
-            let charset = CFStringConvertEncodingToIANACharSetName(CFStringConvertNSStringEncodingToEncoding(self.dataEncoding.rawValue))
-
+			
             let nonOAuthParameters = self.parameters.filter { key, _ in !key.hasPrefix("oauth_") }
 
-            if !self.uploadData.isEmpty {
-                let boundary = "----------HTTPRequestBoUnDaRy"
+			if let body = self.jsonBody {
+				self.request!.setValue("application/json", forHTTPHeaderField: "Content-Type")
+				self.request!.setValue("\(body.count)", forHTTPHeaderField: "Content-Length")
+				self.request!.httpBody = body
+			} else if !self.uploadData.isEmpty {
+                let boundary = "--" + UUID().uuidString
 
                 let contentType = "multipart/form-data; boundary=\(boundary)"
                 self.request!.setValue(contentType, forHTTPHeaderField:"Content-Type")
 
                 var body = Data()
-
-                for dataUpload: DataUpload in self.uploadData {
+                for dataUpload in self.uploadData {
                     let multipartData = HTTPRequest.mulipartContent(with: boundary, data: dataUpload.data, fileName: dataUpload.fileName, parameterName: dataUpload.parameterName, mimeType: dataUpload.mimeType)
                     body.append(multipartData)
                 }
@@ -138,6 +143,7 @@ public class HTTPRequest: NSObject, URLSessionDataDelegate {
                 self.request!.setValue("\(body.count)", forHTTPHeaderField: "Content-Length")
                 self.request!.httpBody = body
             } else if !nonOAuthParameters.isEmpty {
+				let charset = CFStringConvertEncodingToIANACharSetName(CFStringConvertNSStringEncodingToEncoding(self.dataEncoding.rawValue))!
                 if self.HTTPMethod == .GET || self.HTTPMethod == .HEAD || self.HTTPMethod == .DELETE {
                     let queryString = nonOAuthParameters.urlEncodedQueryString(using: self.dataEncoding)
                     self.request!.url = self.url.append(queryString: queryString)
@@ -162,7 +168,7 @@ public class HTTPRequest: NSObject, URLSessionDataDelegate {
         DispatchQueue.main.async {
             let session = URLSession(configuration: .default, delegate: self, delegateQueue: .main)
             self.dataTask = session.dataTask(with: self.request!)
-            self.dataTask.resume()
+            self.dataTask?.resume()
             
             #if os(iOS)
                 UIApplication.shared.isNetworkActivityIndicatorVisible = true
@@ -171,17 +177,23 @@ public class HTTPRequest: NSObject, URLSessionDataDelegate {
     }
 
     public func stop() {
-        self.dataTask.cancel()
+        self.dataTask?.cancel()
     }
 
     public func add(multipartData data: Data, parameterName: String, mimeType: String?, fileName: String?) -> Void {
         let dataUpload = DataUpload(data: data, parameterName: parameterName, mimeType: mimeType, fileName: fileName)
         self.uploadData.append(dataUpload)
     }
+	
+	public func add(body: [String: Any]) {
+		if let data = try? JSONSerialization.data(withJSONObject: body, options: .prettyPrinted) {
+			self.jsonBody = data
+		}
+	}
 
     private class func mulipartContent(with boundary: String, data: Data, fileName: String?, parameterName: String,  mimeType mimeTypeOrNil: String?) -> Data {
         let mimeType = mimeTypeOrNil ?? "application/octet-stream"
-        let fileNameContentDisposition = fileName != nil ? "filename=\"\(fileName)\"" : ""
+        let fileNameContentDisposition = fileName != nil ? "filename=\"\(fileName!)\"" : ""
         let contentDisposition = "Content-Disposition: form-data; name=\"\(parameterName)\"; \(fileNameContentDisposition)\r\n"
         
         var tempData = Data()
@@ -189,7 +201,6 @@ public class HTTPRequest: NSObject, URLSessionDataDelegate {
         tempData.append(contentDisposition.data(using: .utf8)!)
         tempData.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
         tempData.append(data)
-        tempData.append("\r\n".data(using: .utf8)!)
         return tempData
     }
 
@@ -199,6 +210,10 @@ public class HTTPRequest: NSObject, URLSessionDataDelegate {
         #if os(iOS)
             UIApplication.shared.isNetworkActivityIndicatorVisible = false
         #endif
+
+        defer {
+          session.finishTasksAndInvalidate()
+        }
 
         if let error = error {
             self.failureHandler?(error)
@@ -213,7 +228,7 @@ public class HTTPRequest: NSObject, URLSessionDataDelegate {
         let errorCode = HTTPRequest.responseErrorCode(for: responseData) ?? 0
         let localizedDescription = HTTPRequest.description(for: response.statusCode, response: responseString)
         
-        let error = SwifterError(message: localizedDescription, kind: .urlResponseError(status: response.statusCode, headers: response.allHeaderFields as [NSObject : AnyObject], errorCode: errorCode))
+        let error = SwifterError(message: localizedDescription, kind: .urlResponseError(status: response.statusCode, headers: response.allHeaderFields, errorCode: errorCode))
         self.failureHandler?(error)
     }
     

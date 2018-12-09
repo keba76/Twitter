@@ -52,7 +52,7 @@ class LoginVC: UIViewController, UIViewControllerTransitioningDelegate, UIWebVie
         btn.center = self.view.center
         btn.frame.y = self.subtitleLbl.frame.maxY + 30.0
         btn.backgroundColor = UIColor.white
-        btn.setTitle("Sign in", for: UIControlState())
+        btn.setTitle("Sign in", for: UIControl.State())
         self.view.addSubview(btn)
         btn.titleLabel?.font = UIFont(name: "HelveticaNeue-Regular", size: 14)
         btn.setTitleColor(UIColor(red: 22/257, green: 185/257, blue: 237/257, alpha: 1.0), for: .normal)
@@ -73,7 +73,7 @@ class LoginVC: UIViewController, UIViewControllerTransitioningDelegate, UIWebVie
             }, failure: failureHandler)
             
             self.authorize = true
-        }).addDisposableTo(dis)
+        }).disposed(by: self.dis)
         
         btn.alpha = 0
         titleLbl.alpha = 0
@@ -106,7 +106,7 @@ class LoginVC: UIViewController, UIViewControllerTransitioningDelegate, UIWebVie
             let rectProgress = CGRect(x: self.view.bounds.width/2 - 67.0, y: self.view.bounds.height/2 - 67.0, width: 134.0, height: 134.0)
             self.progress = NVActivityIndicatorView(frame: rectProgress, type: .ballScale, color: UIColor.white, padding: 12)
             self.view.addSubview(self.progress!)
-            self.view.bringSubview(toFront: self.progress!)
+            self.view.bringSubviewToFront(self.progress!)
             self.progress?.startAnimating()
             myGroup.enter()
             TwitterClient.swifter.verifyAccountCredentials(includeEntities: false, skipStatus: true, success: { json in

@@ -21,7 +21,7 @@ public class CustomWebVC: UIViewController {
             self.alert(title: "Error", message: error.localizedDescription)
         }
         
-        NotificationCenter.default.addObserver(forName: .SwifterCallbackNotification, object: nil, queue: .main) { notification in
+        NotificationCenter.default.addObserver(forName: .swifterCallback, object: nil, queue: .main) { notification in
             NotificationCenter.default.removeObserver(self)
             
             self.dismiss(animated: true, completion: nil)

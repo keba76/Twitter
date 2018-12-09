@@ -147,12 +147,12 @@ class AnimationController: NSObject, UIViewControllerAnimatedTransitioning {
             avatarImage.alpha = alphaTabs == "up" ? 1 : 0
         }
         
-        containerView.bringSubview(toFront: imageView)
-        containerView.bringSubview(toFront: backView)
-        containerView.bringSubview(toFront: avatarImage)
-        containerView.bringSubview(toFront: videoTriangle)
-        containerView.bringSubview(toFront: AnimationController.screenViewNav!)
-        containerView.bringSubview(toFront: AnimationController.screenViewTab!)
+        containerView.bringSubviewToFront(imageView)
+        containerView.bringSubviewToFront(backView)
+        containerView.bringSubviewToFront(avatarImage)
+        containerView.bringSubviewToFront(videoTriangle)
+        containerView.bringSubviewToFront(AnimationController.screenViewNav!)
+        containerView.bringSubviewToFront(AnimationController.screenViewTab!)
         
         
         

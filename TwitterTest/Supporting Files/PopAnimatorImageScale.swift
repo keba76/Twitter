@@ -60,7 +60,7 @@ class PopAnimatorImageScale: NSObject, UIViewControllerAnimatedTransitioning {
         }
         
         containerView.addSubview(toView)
-        containerView.bringSubview(toFront: bigView)
+        containerView.bringSubviewToFront(bigView)
         
         UIView.animate(withDuration: duration, delay: 0.0, options: .curveEaseIn, animations: {
             bigView.transform = self.presenting ? CGAffineTransform.identity : scaleTransform

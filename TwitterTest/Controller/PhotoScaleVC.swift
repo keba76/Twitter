@@ -45,10 +45,10 @@ class PhotoScaleVC: UIViewController {
         baseView.addConstraint(NSLayoutConstraint(item: imageView!, attribute: .centerX, relatedBy: .equal, toItem: baseView, attribute: .centerX, multiplier: 1, constant: 0))
         baseView.addConstraint(NSLayoutConstraint(item: imageView!, attribute: .centerY, relatedBy: .equal, toItem: baseView, attribute: .centerY, multiplier: 1, constant: 0))
         // add imageview side constraints
-        for attribute: NSLayoutAttribute in [.top, .bottom, .leading, .trailing] {
+        for attribute: NSLayoutConstraint.Attribute in [.top, .bottom, .leading, .trailing] {
             let constraintLowPriority = NSLayoutConstraint(item: imageView!, attribute: attribute, relatedBy: .equal, toItem: baseView, attribute: attribute, multiplier: 1, constant: 0)
             let constraintGreaterThan = NSLayoutConstraint(item: imageView!, attribute: attribute, relatedBy: .greaterThanOrEqual, toItem: baseView, attribute: attribute, multiplier: 1, constant: 0)
-            constraintLowPriority.priority = 750
+            constraintLowPriority.priority = UILayoutPriority(rawValue: 750)
             baseView.addConstraints([constraintLowPriority,constraintGreaterThan])
         }
         
@@ -56,7 +56,7 @@ class PhotoScaleVC: UIViewController {
             let rectProgress = CGRect(x: view.bounds.width/2 - 20.0, y: view.bounds.height/2 - 20.0, width: 40.0, height: 40.0)
             viewProgress = NVActivityIndicatorView(frame: rectProgress, type: .ballRotate, color: UIColor.white, padding: 0)
             self.view.addSubview(self.viewProgress!)
-            self.view.bringSubview(toFront: self.viewProgress!)
+            self.view.bringSubviewToFront(self.viewProgress!)
             self.viewProgress?.startAnimating()
             
             baseView.addSubview(mainViewConteinerForAction)
@@ -88,7 +88,7 @@ class PhotoScaleVC: UIViewController {
                     self.avPlayer.play()
                     self.playbackBtn!.setImage(UIImage(named: "playBtn"), for: .normal)
                 }
-            }).addDisposableTo(dis)
+            }).disposed(by: self.dis)
             
             let resizeImageMinimun = UIImage(named: "sliderMaximum")?.resizableImage(withCapInsets: UIEdgeInsets(top: 0.0, left: 5.0, bottom: 0.0, right: 5.0), resizingMode: .tile)
             let resizeImageMaximum = UIImage(named: "sliderMinimum")?.resizableImage(withCapInsets: UIEdgeInsets(top: 0.0, left: 5.0, bottom: 0.0, right: 5.0), resizingMode: .stretch)
@@ -120,7 +120,7 @@ class PhotoScaleVC: UIViewController {
         if thePlayerItem?.status == .readyToPlay {
             return thePlayerItem!.duration
         }
-        return kCMTimeInvalid
+        return CMTime.invalid
     }
     
     func syncScrubber(elapsedTime: CMTime) {
@@ -137,7 +137,7 @@ class PhotoScaleVC: UIViewController {
             seekSlider.setValue(time, animated: true)
             if seekSlider.value == seekSlider.maximumValue {
                 seekSlider.value = 0.0
-                avPlayer.seek(to: CMTime(value: CMTimeValue.allZeros, timescale: 1))
+                avPlayer.seek(to: CMTime.zero)
             }
         }
     }
@@ -205,20 +205,20 @@ class PhotoScaleVC: UIViewController {
         }
     }
     
-    func sliderBeganTracking(slider: UISlider) {
+    @objc func sliderBeganTracking(slider: UISlider) {
         playerRateBeforeSeek = avPlayer.rate
         avPlayer.pause()
     }
-    func sliderEndedTracking(slider: UISlider) {
+    @objc func sliderEndedTracking(slider: UISlider) {
         let elapsedTime: Float64 = Float64(seekSlider.value)
         updateTimeLabel(elapsedTime: elapsedTime)
-        avPlayer.seek(to: CMTimeMakeWithSeconds(elapsedTime, 1000)) { (completed: Bool) -> Void in
+        avPlayer.seek(to: CMTimeMakeWithSeconds(elapsedTime, preferredTimescale: 1000)) { (completed: Bool) -> Void in
             if self.playerRateBeforeSeek > 0 {
                 self.avPlayer.play()
             }
         }
     }
-    func sliderValueChanged(slider: UISlider) {
+    @objc func sliderValueChanged(slider: UISlider) {
         let elapsedTime: Float64 = Float64(seekSlider.value)
         updateTimeLabel(elapsedTime: elapsedTime)
     }
@@ -231,7 +231,7 @@ class PhotoScaleVC: UIViewController {
         }
     }
     
-    func actionClose(_ tap: UITapGestureRecognizer) {
+    @objc func actionClose(_ tap: UITapGestureRecognizer) {
         avPlayer.pause()
         
         if UIDevice.current.orientation.isLandscape {

@@ -127,11 +127,11 @@ public class DOFavoriteButton: UIButton {
         circleMask = CAShapeLayer()
         circleMask.bounds = imageFrame
         circleMask.position = imgCenterPoint
-        circleMask.fillRule = kCAFillRuleEvenOdd
+        circleMask.fillRule = CAShapeLayerFillRule.evenOdd
         circleShape.mask = circleMask
 
         let maskPath = UIBezierPath(rect: imageFrame)
-        maskPath.addArc(withCenter: imgCenterPoint, radius: 0.1, startAngle: CGFloat(0.0), endAngle: CGFloat(M_PI * 2), clockwise: true)
+        maskPath.addArc(withCenter: imgCenterPoint, radius: 0.1, startAngle: CGFloat(0.0), endAngle: CGFloat(Double.pi * 2), clockwise: true)
         circleMask.path = maskPath.cgPath
 
         //===============
@@ -153,12 +153,12 @@ public class DOFavoriteButton: UIButton {
                 path.addLine(to: CGPoint(x: lineFrame.origin.x + lineFrame.width / 2, y: lineFrame.origin.y))
                 return path
                 }()
-            line.lineCap = kCALineCapRound
-            line.lineJoin = kCALineJoinRound
+            line.lineCap = CAShapeLayerLineCap.round
+            line.lineJoin = CAShapeLayerLineJoin.round
             line.strokeStart = 0.0
             line.strokeEnd = 0.0
             line.opacity = 0.0
-            line.transform = CATransform3DMakeRotation(CGFloat(M_PI) / 5 * (CGFloat(i) * 2 + 1), 0.0, 0.0, 1.0)
+            line.transform = CATransform3DMakeRotation(CGFloat(Double.pi) / 5 * (CGFloat(i) * 2 + 1), 0.0, 0.0, 1.0)
             self.layer.addSublayer(line)
             lines.append(line)
         }
@@ -341,26 +341,26 @@ public class DOFavoriteButton: UIButton {
         //===============
         // add target
         //===============
-        self.addTarget(self, action: #selector(touchDown(sender:)), for: UIControlEvents.touchDragEnter)
-        self.addTarget(self, action: #selector(touchUpInside(sender:)),for: UIControlEvents.touchDragEnter)
-        self.addTarget(self, action: #selector(touchDragExit(sender:)), for: UIControlEvents.touchDragEnter)
-        self.addTarget(self, action: #selector(touchDragEnter(sender:)), for: UIControlEvents.touchDragEnter)
-        self.addTarget(self, action: #selector(touchCancel(sender:)), for: UIControlEvents.touchDragEnter)
+        self.addTarget(self, action: #selector(touchDown(sender:)), for: UIControl.Event.touchDragEnter)
+        self.addTarget(self, action: #selector(touchUpInside(sender:)),for: UIControl.Event.touchDragEnter)
+        self.addTarget(self, action: #selector(touchDragExit(sender:)), for: UIControl.Event.touchDragEnter)
+        self.addTarget(self, action: #selector(touchDragEnter(sender:)), for: UIControl.Event.touchDragEnter)
+        self.addTarget(self, action: #selector(touchCancel(sender:)), for: UIControl.Event.touchDragEnter)
     }
 
-    func touchDown(sender: DOFavoriteButton) {
+    @objc func touchDown(sender: DOFavoriteButton) {
         self.layer.opacity = 0.4
     }
-    func touchUpInside(sender: DOFavoriteButton) {
+    @objc func touchUpInside(sender: DOFavoriteButton) {
         self.layer.opacity = 1.0
     }
-    func touchDragExit(sender: DOFavoriteButton) {
+    @objc func touchDragExit(sender: DOFavoriteButton) {
         self.layer.opacity = 1.0
     }
-    func touchDragEnter(sender: DOFavoriteButton) {
+    @objc func touchDragEnter(sender: DOFavoriteButton) {
         self.layer.opacity = 0.4
     }
-    func touchCancel(sender: DOFavoriteButton) {
+    @objc func touchCancel(sender: DOFavoriteButton) {
         self.layer.opacity = 1.0
     }
 

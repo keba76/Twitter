@@ -71,11 +71,11 @@ class ModelTweet {
             let text = quote!.text
             let attribute = NSMutableAttributedString(attributedString: text)
             attribute.beginEditing()
-            attribute.enumerateAttribute(NSFontAttributeName, in: NSRange(location: 0, length: text.length), using: { (value, range, stop) in
+            attribute.enumerateAttribute(NSAttributedString.Key(rawValue: convertFromNSAttributedStringKey(NSAttributedString.Key.font)), in: NSRange(location: 0, length: text.length), using: { (value, range, stop) in
                 if let oldFont = value as? UIFont {
                     let newFont = oldFont.withSize(12.5)
-                    attribute.removeAttribute(NSFontAttributeName, range: range)
-                    attribute.addAttribute(NSFontAttributeName, value: newFont, range: range)
+                    attribute.removeAttribute(NSAttributedString.Key.font, range: range)
+                    attribute.addAttribute(NSAttributedString.Key.font, value: newFont, range: range)
                 }
             })
             attribute.endEditing()
@@ -84,7 +84,7 @@ class ModelTweet {
         
         var tempVia = parse.via!
         if !tempVia.isEmpty {
-            tempVia.characters.removeFirst(1)
+            tempVia.removeFirst(1)
             let rangeStart = tempVia.indexOf(">")
             let rangeEnd = tempVia.indexOf("<")
             via = tempVia.substringBetween(from: rangeStart, to: rangeEnd)
@@ -113,7 +113,7 @@ class ModelTweet {
                 let displayURLs = json["display_url"].string!
                 let urlExpanded = json["expanded_url"].string!
                 if urlExpanded.contains("instagram.com") {
-                    if let doc = HTML(url: URL(string: urlExpanded)! , encoding: .utf8) {
+                    if let doc = try? HTML(url: URL(string: urlExpanded)! , encoding: .utf8) {
                         if let image = doc.at_xpath("//meta[@property='og:image']/@content") {
                             mediaImageURLs = [URL]()
                             mediaImageURLs?.append(URL(string: image.text!)!)
@@ -151,28 +151,28 @@ class ModelTweet {
         textParse = textParse.replace(target: "\n\n", withString: "\n")
         textParse = textParse.trimmingCharacters(in: .whitespacesAndNewlines)
         text = NSMutableAttributedString(string: textParse)
-        text.addAttribute(NSFontAttributeName, value: UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightRegular), range: NSRange(location: 0, length: text.length))
+        text.addAttribute(NSAttributedString.Key.font, value: UIFont.systemFont(ofSize: 14.0, weight: UIFont.Weight.regular), range: NSRange(location: 0, length: text.length))
         
         if displayURL.count > 0 {
             let urlText = " " + displayURL.joined(separator: " ")
             if parse.userMentions.count > 0 {
                 for texts in parse.userMentions {
                     let range = text.mutableString.range(of: texts, options: [.caseInsensitive])
-                    let prefix = NSMutableAttributedString(string: texts, attributes: [NSFontAttributeName : UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightBold), NSForegroundColorAttributeName : UIColor(red: 25/255.0, green: 109/255.0, blue: 161/255.0, alpha: 1)])
+                    let prefix = NSMutableAttributedString(string: texts, attributes: convertToOptionalNSAttributedStringKeyDictionary([convertFromNSAttributedStringKey(NSAttributedString.Key.font) : UIFont.systemFont(ofSize: 14.0, weight: UIFont.Weight.bold), convertFromNSAttributedStringKey(NSAttributedString.Key.foregroundColor) : UIColor(red: 25/255.0, green: 109/255.0, blue: 161/255.0, alpha: 1)]))
                     text.replaceCharacters(in: range, with: prefix)
                 }
             }
             if let hash = parse.hashtag, (parse.hashtag?.count)! > 0 {
                 for json in hash {
                     let texts = "#" + json["text"].string!
-                    let hashString = NSMutableAttributedString(string: texts, attributes: [NSFontAttributeName : UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightRegular), NSForegroundColorAttributeName : UIColor.gray])
+                    let hashString = NSMutableAttributedString(string: texts, attributes: convertToOptionalNSAttributedStringKeyDictionary([convertFromNSAttributedStringKey(NSAttributedString.Key.font) : UIFont.systemFont(ofSize: 14.0, weight: UIFont.Weight.regular), convertFromNSAttributedStringKey(NSAttributedString.Key.foregroundColor) : UIColor.gray]))
                     let range = text.mutableString.range(of: texts)
                     text.replaceCharacters(in: range, with: hashString)
                 }
             }
             let links = NSMutableAttributedString(string: urlText)
-            links.addAttribute(NSFontAttributeName, value: UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightRegular), range: NSRange(location: 0, length: links.length))
-            links.addAttribute(NSForegroundColorAttributeName, value: UIColor(red: 36/255.0, green: 144/255.0, blue: 212/255.0, alpha: 1), range: NSRange(location: 0, length: links.length))
+            links.addAttribute(NSAttributedString.Key.font, value: UIFont.systemFont(ofSize: 14.0, weight: UIFont.Weight.regular), range: NSRange(location: 0, length: links.length))
+            links.addAttribute(NSAttributedString.Key.foregroundColor, value: UIColor(red: 36/255.0, green: 144/255.0, blue: 212/255.0, alpha: 1), range: NSRange(location: 0, length: links.length))
             text.append(links)
             for url in displayURL {
                 let rangeNSString = text.mutableString.range(of: url)
@@ -181,58 +181,58 @@ class ModelTweet {
             }
             let style = NSMutableParagraphStyle()
             style.lineSpacing = 1.5
-            let font = UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightRegular)
+            let font = UIFont.systemFont(ofSize: 14.0, weight: UIFont.Weight.regular)
             style.lineHeightMultiple = 1.0
             style.minimumLineHeight = font.lineHeight
             style.maximumLineHeight = font.lineHeight
             style.lineBreakMode = NSLineBreakMode.byWordWrapping
-            text.addAttribute(NSParagraphStyleAttributeName, value: style, range: NSRange(location: 0, length: text.length))
+            text.addAttribute(NSAttributedString.Key.paragraphStyle, value: style, range: NSRange(location: 0, length: text.length))
             
         } else if let hash = parse.hashtag, (parse.hashtag?.count)! > 0 {
             for json in hash {
                 let texts = "#" + json["text"].string!
-                let hashString = NSMutableAttributedString(string: texts, attributes: [NSFontAttributeName : UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightRegular), NSForegroundColorAttributeName : UIColor.gray])
+                let hashString = NSMutableAttributedString(string: texts, attributes: convertToOptionalNSAttributedStringKeyDictionary([convertFromNSAttributedStringKey(NSAttributedString.Key.font) : UIFont.systemFont(ofSize: 14.0, weight: UIFont.Weight.regular), convertFromNSAttributedStringKey(NSAttributedString.Key.foregroundColor) : UIColor.gray]))
                 let range = text.mutableString.range(of: texts)
                 text.replaceCharacters(in: range, with: hashString)
             }
             if parse.userMentions.count > 0 {
                 for texts in parse.userMentions {
                     let range = text.mutableString.range(of: texts, options: [.caseInsensitive])
-                    let prefix = NSMutableAttributedString(string: texts, attributes: [NSFontAttributeName : UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightBold), NSForegroundColorAttributeName : UIColor(red: 25/255.0, green: 109/255.0, blue: 161/255.0, alpha: 1)])
+                    let prefix = NSMutableAttributedString(string: texts, attributes: convertToOptionalNSAttributedStringKeyDictionary([convertFromNSAttributedStringKey(NSAttributedString.Key.font) : UIFont.systemFont(ofSize: 14.0, weight: UIFont.Weight.bold), convertFromNSAttributedStringKey(NSAttributedString.Key.foregroundColor) : UIColor(red: 25/255.0, green: 109/255.0, blue: 161/255.0, alpha: 1)]))
                     text.replaceCharacters(in: range, with: prefix)
                 }
             }
             let style = NSMutableParagraphStyle()
             style.lineSpacing = 1.5
-            let font = UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightRegular)
+            let font = UIFont.systemFont(ofSize: 14.0, weight: UIFont.Weight.regular)
             style.lineHeightMultiple = 1.0
             style.minimumLineHeight = font.lineHeight
             style.maximumLineHeight = font.lineHeight
             style.lineBreakMode = NSLineBreakMode.byWordWrapping
-            text.addAttribute(NSParagraphStyleAttributeName, value: style, range: NSRange(location: 0, length: text.length))
+            text.addAttribute(NSAttributedString.Key.paragraphStyle, value: style, range: NSRange(location: 0, length: text.length))
         } else if parse.userMentions.count > 0 {
             for texts in parse.userMentions {
                 let range = text.mutableString.range(of: texts, options: [.caseInsensitive])
-                let prefix = NSMutableAttributedString(string: texts, attributes: [NSFontAttributeName : UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightBold), NSForegroundColorAttributeName : UIColor(red: 25/255.0, green: 109/255.0, blue: 161/255.0, alpha: 1)])
+                let prefix = NSMutableAttributedString(string: texts, attributes: convertToOptionalNSAttributedStringKeyDictionary([convertFromNSAttributedStringKey(NSAttributedString.Key.font) : UIFont.systemFont(ofSize: 14.0, weight: UIFont.Weight.bold), convertFromNSAttributedStringKey(NSAttributedString.Key.foregroundColor) : UIColor(red: 25/255.0, green: 109/255.0, blue: 161/255.0, alpha: 1)]))
                 text.replaceCharacters(in: range, with: prefix)
             }
             let style = NSMutableParagraphStyle()
-            let font = UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightRegular)
+            let font = UIFont.systemFont(ofSize: 14.0, weight: UIFont.Weight.regular)
             style.lineHeightMultiple = 1.0
             style.minimumLineHeight = font.lineHeight
             style.maximumLineHeight = font.lineHeight
             style.lineSpacing = 1.5
             style.lineBreakMode = NSLineBreakMode.byWordWrapping
-            text.addAttribute(NSParagraphStyleAttributeName, value: style, range: NSRange(location: 0, length: text.length))
+            text.addAttribute(NSAttributedString.Key.paragraphStyle, value: style, range: NSRange(location: 0, length: text.length))
         } else {
             let style = NSMutableParagraphStyle()
-            let font = UIFont.systemFont(ofSize: 14.0, weight: UIFontWeightRegular)
+            let font = UIFont.systemFont(ofSize: 14.0, weight: UIFont.Weight.regular)
             style.lineHeightMultiple = 1.0
             style.minimumLineHeight = font.lineHeight
             style.maximumLineHeight = font.lineHeight
             style.lineSpacing = 1.5
             style.lineBreakMode = NSLineBreakMode.byWordWrapping
-            text.addAttribute(NSParagraphStyleAttributeName, value: style, range: NSRange(location: 0, length: text.length))
+            text.addAttribute(NSAttributedString.Key.paragraphStyle, value: style, range: NSRange(location: 0, length: text.length))
         }
         
         if parse.retweetTweetID != nil, parse.retweetBtn, parse.retweetedName != Profile.account.name{
@@ -321,3 +321,14 @@ enum UserData: Equatable {
 
 
 
+
+// Helper function inserted by Swift 4.2 migrator.
+fileprivate func convertFromNSAttributedStringKey(_ input: NSAttributedString.Key) -> String {
+	return input.rawValue
+}
+
+// Helper function inserted by Swift 4.2 migrator.
+fileprivate func convertToOptionalNSAttributedStringKeyDictionary(_ input: [String: Any]?) -> [NSAttributedString.Key: Any]? {
+	guard let input = input else { return nil }
+	return Dictionary(uniqueKeysWithValues: input.map { key, value in (NSAttributedString.Key(rawValue: key), value)})
+}

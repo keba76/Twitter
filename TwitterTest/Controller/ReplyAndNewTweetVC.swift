@@ -59,14 +59,14 @@ class Cell1: UICollectionViewCell {
             } else {
                 self.delegate?.extensionLabel(photo: true, photoName: "pic", convert: self.convert(self.btnPhoto.frame, to: self.contentView))
             }
-        }).addDisposableTo(dis)
+        }).disposed(by: dis)
         
         btnHashtag.rx.tap.asObservable().subscribe(onNext: { _ in
             self.delegate?.extensionLabel(symbol: "#", text: "Start Typing a Tag...")
-        }).addDisposableTo(dis)
+        }).disposed(by: dis)
         btnAt.rx.tap.asObservable().subscribe(onNext: { _ in
             self.delegate?.extensionLabel(symbol: "@", text: "Start Typing a Name...")
-        }).addDisposableTo(dis)
+        }).disposed(by: dis)
     }
 }
 class Cell2: UICollectionViewCell {
@@ -139,32 +139,32 @@ class ReplyAndNewTweetVC: UIViewController, UITextViewDelegate {
         
         inputText.becomeFirstResponder()
         
-        NotificationCenter.default.rx.notification(.UIKeyboardWillShow).subscribe(onNext: { notification in
-            guard let keyboardEndFrame = notification.userInfo?[UIKeyboardFrameEndUserInfoKey] as? NSValue else { return }
-            guard let duration = notification.userInfo?[UIKeyboardAnimationDurationUserInfoKey] as? NSNumber else { return }
-            guard let curve = notification.userInfo?[UIKeyboardAnimationCurveUserInfoKey] as? NSNumber else { return }
+        NotificationCenter.default.rx.notification(UIResponder.keyboardWillShowNotification).subscribe(onNext: { notification in
+            guard let keyboardEndFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue else { return }
+            guard let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? NSNumber else { return }
+            guard let curve = notification.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? NSNumber else { return }
             self.keyboardHeight = keyboardEndFrame.cgRectValue.height
             
             UIView.animate(withDuration: duration.doubleValue,
                            delay: 0,
-                           options: UIViewAnimationOptions(rawValue: UInt(curve.intValue << 16)),
+                           options: UIView.AnimationOptions(rawValue: UInt(curve.intValue << 16)),
                            animations: {
                             self.bottomEdgeConstraint.constant = keyboardEndFrame.cgRectValue.height
                             self.view.layoutIfNeeded() },
                            completion: { _ in
             })
-        }).addDisposableTo(dis)
+        }).disposed(by: dis)
         
         var number: Int = 0
         if let reply = userReply{
             inputText.text = "@" + "\(reply.user.screenName) "
-            number = 140 - inputText.text.characters.count
+            number = 140 - inputText.text.count
         }
         if user.count > 0 {
             for name in user {
                 if let user = userReply,  name == "@\(user.user.screenName)" { continue }
                 inputText.text = inputText.text + "\(name) "
-                number = 140 - inputText.text.characters.count
+                number = 140 - inputText.text.count
             }
             if number > 0 {
                 charCountLbl.value = "\(number)"
@@ -177,10 +177,10 @@ class ReplyAndNewTweetVC: UIViewController, UITextViewDelegate {
                 let cellSize = CGSize(width: UIScreen.main.bounds.width, height: 28)
                 let contentOff = self.collectionView.contentOffset
                 self.collectionView.scrollRectToVisible(CGRect(x: 0, y: contentOff.y, width: cellSize.width, height: cellSize.height), animated: true)
-                self.collectionView.contentInset = UIEdgeInsetsMake(0, 0, 0, 0)
+                self.collectionView.contentInset = UIEdgeInsets.init(top: 0, left: 0, bottom: 0, right: 0)
                 self.scrollBack = false
             }
-            }.addDisposableTo(dis)
+            }.disposed(by: dis)
         
         inputText.delegate = self
         let btnTweet = UIButton(type: .custom)
@@ -204,7 +204,7 @@ class ReplyAndNewTweetVC: UIViewController, UITextViewDelegate {
                 self.viewBtnClose = UIImageView(image: view)
                 self.viewBtnClose!.frame = self.view.frame
                 self.view.addSubview(self.viewBtnClose!)
-                self.view.bringSubview(toFront: self.viewBtnClose!)
+                self.view.bringSubviewToFront(self.viewBtnClose!)
                 self.inputText.resignFirstResponder()
                 UIView.animate(withDuration: 0.0, delay: 0, options: .curveEaseOut, animations: {
                     let value = UIInterfaceOrientation.portrait.rawValue
@@ -216,7 +216,7 @@ class ReplyAndNewTweetVC: UIViewController, UITextViewDelegate {
                 self.inputText.resignFirstResponder()
                 self.presentingViewController?.dismiss(animated: true, completion: nil)
             }
-        }).addDisposableTo(dis)
+        }).disposed(by: dis)
         
         btnTweet.rx.tap.subscribe(onNext: {
             Profile.reloadingProfileTweetsWhenReply += 1
@@ -227,12 +227,12 @@ class ReplyAndNewTweetVC: UIViewController, UITextViewDelegate {
             self.viewProgress = NVActivityIndicatorView(frame: rectProgress, type: .lineScalePulseOut, color: UIColor(red: 255/255, green: 0/255, blue: 104/255, alpha: 1), padding: 0)
             
             self.view.addSubview(self.viewProgress!)
-            self.view.bringSubview(toFront: self.viewProgress!)
+            self.view.bringSubviewToFront(self.viewProgress!)
             self.viewProgress?.startAnimating()
             
             DispatchQueue.global().async {
                 if let pic = self.image, self.inputText.text != "" {
-                    let data = UIImageJPEGRepresentation(pic, 0.5)
+                    let data = pic.jpegData(compressionQuality: 0.5)
                     ReplyAndNewTweetVC.instance.publishTweet(status: self.inputText.text, media: data, publicReply: self.publicReply ? nil : self.userReply!.tweetID, complited: { tweet in
                         if self.rotation {
                             self.rotation = false
@@ -241,7 +241,7 @@ class ReplyAndNewTweetVC: UIViewController, UITextViewDelegate {
                         }
                     })
                 } else if let pic = self.image {
-                    let data = UIImageJPEGRepresentation(pic, 0.5)
+                    let data = pic.jpegData(compressionQuality: 0.5)
                     ReplyAndNewTweetVC.instance.publishTweet(status: nil, media: data, publicReply: self.publicReply ? nil : self.userReply!.tweetID, complited: { tweet in
                         self.dismissTweet()
                     })
@@ -252,7 +252,7 @@ class ReplyAndNewTweetVC: UIViewController, UITextViewDelegate {
                 }
             }
             
-        }).addDisposableTo(dis)
+        }).disposed(by: dis)
     }
     
     private func dismissTweet() {
@@ -261,7 +261,7 @@ class ReplyAndNewTweetVC: UIViewController, UITextViewDelegate {
             self.viewBtnClose = UIImageView(image: view)
             self.viewBtnClose!.frame = self.view.frame
             self.view.addSubview(self.viewBtnClose!)
-            self.view.bringSubview(toFront: self.viewBtnClose!)
+            self.view.bringSubviewToFront(self.viewBtnClose!)
             self.viewProgress?.stopAnimating()
             self.viewProgress?.removeFromSuperview()
             self.viewProgress = nil
@@ -353,7 +353,7 @@ class ReplyAndNewTweetVC: UIViewController, UITextViewDelegate {
             print(inputText.text)
             btnTweet?.isEnabled = true
         } else {
-            charCountLbl.value = String(140 - inputText.text.characters.count)
+            charCountLbl.value = String(140 - inputText.text.count)
         }
     }
     func textViewDidEndEditing(_ textView: UITextView) {
@@ -362,12 +362,12 @@ class ReplyAndNewTweetVC: UIViewController, UITextViewDelegate {
         }
     }
     func textViewDidChange(_ textView: UITextView) {
-        if inputText.text.characters.count > 0 && inputText.text.characters.count < 140  {
-            charCountLbl.value = String(140 - inputText.text.characters.count)
+        if inputText.text.count > 0 && inputText.text.count < 140  {
+            charCountLbl.value = String(140 - inputText.text.count)
             btnTweet?.isEnabled = true
         } else {
             btnTweet?.isEnabled = false
-            charCountLbl.value = String(140 - inputText.text.characters.count)
+            charCountLbl.value = String(140 - inputText.text.count)
         }
     }
 }
@@ -575,11 +575,11 @@ extension ReplyAndNewTweetVC: ModallyDelegate, KeyTop {
             }
         }
     }
-    func imagePickerAppeare(keyboard: KeyboardStayAppearedVC) {
+    @objc func imagePickerAppeare(keyboard: KeyboardStayAppearedVC) {
         keyboard.present(self.imagePicker, animated: true, completion: nil)
     }
     
-    func performModalImageShow(array: Array<Any>) {
+    @objc func performModalImageShow(array: Array<Any>) {
         let first = array[0] as! KeyboardStayAppearedVC
         let second = array[1] as! PhotoScaleSimpleVC
         first.present(second, animated: true, completion: nil)
@@ -587,8 +587,11 @@ extension ReplyAndNewTweetVC: ModallyDelegate, KeyTop {
 }
 extension ReplyAndNewTweetVC: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     
-    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String : Any]) {
-        let pic = info[UIImagePickerControllerOriginalImage] as? UIImage
+    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+// Local variable inserted by Swift 4.2 migrator.
+let info = convertFromUIImagePickerControllerInfoKeyDictionary(info)
+
+        let pic = info[convertFromUIImagePickerControllerInfoKey(UIImagePickerController.InfoKey.originalImage)] as? UIImage
         picker.dismiss(animated: true, completion: {
             self.image = pic
             self.btnTweet?.isEnabled = true
@@ -609,3 +612,13 @@ extension UIImagePickerController {
 }
 
 
+
+// Helper function inserted by Swift 4.2 migrator.
+fileprivate func convertFromUIImagePickerControllerInfoKeyDictionary(_ input: [UIImagePickerController.InfoKey: Any]) -> [String: Any] {
+	return Dictionary(uniqueKeysWithValues: input.map {key, value in (key.rawValue, value)})
+}
+
+// Helper function inserted by Swift 4.2 migrator.
+fileprivate func convertFromUIImagePickerControllerInfoKey(_ input: UIImagePickerController.InfoKey) -> String {
+	return input.rawValue
+}

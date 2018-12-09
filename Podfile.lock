@@ -1,51 +1,35 @@
 PODS:
-  - CMDQueryStringSerialization (0.4.1):
-    - ISO8601
-  - cocoa-oauth (0.0.1):
-    - NSData+Base64 (~> 1.0)
-  - ISO8601 (0.6.0)
-  - Kanna (2.1.1)
-  - NSData+Base64 (1.0.0)
-  - ReactiveCocoa (4.2.2):
-    - Result (~> 2.0)
-  - Result (2.1.3)
-  - RxCocoa (3.0.0):
-    - RxSwift (~> 3.0)
-  - RxSwift (3.0.0)
-  - SDWebImage (3.8.2):
-    - SDWebImage/Core (= 3.8.2)
-  - SDWebImage/Core (3.8.2)
-  - SimpleAuth/Core (0.3.9):
-    - CMDQueryStringSerialization
-    - ReactiveCocoa
-  - SimpleAuth/Twitter (0.3.9):
-    - cocoa-oauth
-    - SimpleAuth/Core
-  - SimpleAuth/TwitterWeb (0.3.9):
-    - cocoa-oauth
-    - SimpleAuth/Core
+  - Kanna (4.0.2)
+  - RxAtomic (4.4.0)
+  - RxCocoa (4.4.0):
+    - RxSwift (~> 4.0)
+  - RxSwift (4.4.0):
+    - RxAtomic (~> 4.4)
+  - SDWebImage (4.4.3):
+    - SDWebImage/Core (= 4.4.3)
+  - SDWebImage/Core (4.4.3)
 
 DEPENDENCIES:
-  - Kanna (~> 2.1.0)
-  - RxCocoa (~> 3.0)
-  - RxSwift (~> 3.0)
-  - SDWebImage (~> 3.8)
-  - SimpleAuth/Twitter
-  - SimpleAuth/TwitterWeb
+  - Kanna (~> 4.0.0)
+  - RxCocoa (~> 4.0)
+  - RxSwift (~> 4.0)
+  - SDWebImage (~> 4.0)
+
+SPEC REPOS:
+  https://github.com/cocoapods/specs.git:
+    - Kanna
+    - RxAtomic
+    - RxCocoa
+    - RxSwift
+    - SDWebImage
 
 SPEC CHECKSUMS:
-  CMDQueryStringSerialization: 4bb0a2f5e7d8d8678d911d88072274952cbef4e5
-  cocoa-oauth: 1200a2170276a62a975f2786d505dab6e2db1fa8
-  ISO8601: d3ea3ba9b752820cf92c6b47a9ee327e9f0e13fc
-  Kanna: 9b4b086c218703f2b94f5b21a466217dd2f9332e
-  NSData+Base64: 4e84902c4db907a15673474677e57763ef3903e4
-  ReactiveCocoa: 72263e7ac0770c274617ccd345e01049d0ca38ae
-  Result: 18e1a7597fbcca5923c565b40a25a98afafdee02
-  RxCocoa: 0a2f3ae381cf16f4021a4cee7a4420f83058a965
-  RxSwift: a930cd662f5b4a7ca9dc3518585dba91dadf497c
-  SDWebImage: 098e97e6176540799c27e804c96653ee0833d13c
-  SimpleAuth: bc7d594f90711a7e6ef7624dce5aa8c8b09770ab
+  Kanna: c60b61d72554bf04ed1ee074f9b379855cab4892
+  RxAtomic: eacf60db868c96bfd63320e28619fe29c179656f
+  RxCocoa: df63ebf7b9a70d6b4eeea407ed5dd4efc8979749
+  RxSwift: 5976ecd04fc2fefd648827c23de5e11157faa973
+  SDWebImage: c5594f1a19c48d526d321e548902b56b479cd508
 
-PODFILE CHECKSUM: 04c9f8b1b2f5feaf98ce00e26f1ea350fd7c03b8
+PODFILE CHECKSUM: 4f2be68cf7687a15a0dbf4d5d1b6e6aa69f7078f
 
-COCOAPODS: 1.2.0
+COCOAPODS: 1.5.3

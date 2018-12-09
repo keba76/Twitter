@@ -31,7 +31,12 @@ class SplashVC: UIViewController, SegueHandlerType {
         let accountType = accountStore.accountType(withAccountTypeIdentifier: ACAccountTypeIdentifierTwitter)
         accountStore.requestAccessToAccounts(with: accountType, options: nil) { granted, error in
             guard granted else {
-                self.alert(title: "Error", message: error!.localizedDescription)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: {
+                    self.alertWithHandler(title: "Warning", message: "There are no Twitter accounts configured. You can add a Twitter account in Settings.", handler: {
+                        self.performSegueWithIdentifier(segueIdentifier: .LoginVC, sender: self)
+                    })
+                })
+                //self.alert(title: "Error", message: error!.localizedDescription)
                 return
             }
             let twitterAccounts = accountStore.accounts(with: accountType)!
@@ -40,7 +45,7 @@ class SplashVC: UIViewController, SegueHandlerType {
                     let rectProgress = CGRect(x: self.view.bounds.width/2 - 67.0, y: self.view.bounds.height/2 - 67.0, width: 134.0, height: 134.0)
                     self.progress = NVActivityIndicatorView(frame: rectProgress, type: .ballScale, color: UIColor.white, padding: 12)
                     self.view.addSubview(self.progress!)
-                    self.view.bringSubview(toFront: self.progress!)
+                    self.view.bringSubviewToFront(self.progress!)
                     self.progress?.startAnimating()
                     let twitterAccount = twitterAccounts[0] as! ACAccount
                     self.swifter = Swifter(account: twitterAccount)
@@ -54,7 +59,7 @@ class SplashVC: UIViewController, SegueHandlerType {
                     let rectProgress = CGRect(x: self.view.bounds.width/2 - 67.0, y: self.view.bounds.height/2 - 67.0, width: 134.0, height: 134.0)
                     self.progress = NVActivityIndicatorView(frame: rectProgress, type: .ballScale, color: UIColor.white, padding: 12)
                     self.view.addSubview(self.progress!)
-                    self.view.bringSubview(toFront: self.progress!)
+                    self.view.bringSubviewToFront(self.progress!)
                     self.progress?.startAnimating()
                     let data = try! Data(contentsOf: fileURL)
                     NSKeyedUnarchiver.setClass(Credential.OAuthAccessToken.Coding.classForKeyedUnarchiver(), forClassName: "Credential")

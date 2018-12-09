@@ -29,10 +29,10 @@ class PhotoScaleSimpleVC: UIViewController {
         view.addConstraint(NSLayoutConstraint(item: imageView, attribute: .centerY, relatedBy: .equal, toItem: view, attribute: .centerY, multiplier: 1, constant: 0))
         
         // add imageview side constraints
-        for attribute: NSLayoutAttribute in [.top, .bottom, .leading, .trailing] {
+        for attribute: NSLayoutConstraint.Attribute in [.top, .bottom, .leading, .trailing] {
             let constraintLowPriority = NSLayoutConstraint(item: imageView, attribute: attribute, relatedBy: .equal, toItem: view, attribute: attribute, multiplier: 1, constant: 0)
             let constraintGreaterThan = NSLayoutConstraint(item: imageView, attribute: attribute, relatedBy: .greaterThanOrEqual, toItem: view, attribute: attribute, multiplier: 1, constant: 0)
-            constraintLowPriority.priority = 750
+            constraintLowPriority.priority = UILayoutPriority(rawValue: 750)
             view.addConstraints([constraintLowPriority,constraintGreaterThan])
             
             
@@ -45,7 +45,7 @@ class PhotoScaleSimpleVC: UIViewController {
         view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(actionClose(_:))))
     }
     
-    func actionClose(_ tap: UITapGestureRecognizer) {
+    @objc func actionClose(_ tap: UITapGestureRecognizer) {
         if UIDevice.current.orientation.isLandscape {
             presentingViewController?.dismiss(animated: true, completion: nil)
         } else {

@@ -24,8 +24,8 @@ class ImageLoadOperation: CoreOperationAsync {
     override func start() {
         super.start()
         
-        SDWebImageManager.shared().downloadImage(with: url, progress: { (_ , _) in
-        }) { (image, error, cache , _ , _) in
+        SDWebImageManager.shared().loadImage(with: url, progress: { (_ , _, _) in
+        }) { (image, error, _, cache, _ , _) in
             if image != nil, cache == .none {
                 let urlString = self.url.absoluteString
                 if urlString.contains("profile_images") {
@@ -60,8 +60,8 @@ class ImageLoadOperation: CoreOperationAsync {
                     if urlString.contains("jpeg") {
                         newUrl = urlString.replace(target: ".jpeg", withString: "_bigger.jpeg")
                     }
-                    SDWebImageManager.shared().downloadImage(with: URL(string: newUrl), progress: { (_ , _) in
-                    }) { (image, error, cache , _ , _) in
+                    SDWebImageManager.shared().loadImage(with: URL(string: newUrl), progress: { (_ , _, _) in
+                    }) { (image, error, cache , _ , _, _) in
                         guard !self.isCancelled, let image = image else { self.finish(); return }
                         
                         self.image = image

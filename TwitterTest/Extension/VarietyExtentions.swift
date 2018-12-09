@@ -23,11 +23,11 @@ extension String {
         } else { startIndex = self.startIndex }
         
         let endIndex: String.Index
-        if let end = to, end >= 0, end < self.characters.count {
+        if let end = to, end >= 0, end < self.count {
             endIndex = self.index(self.startIndex, offsetBy: end)
         } else { endIndex = self.endIndex }
         
-        return self[startIndex ..< endIndex]
+        return String(self[startIndex ..< endIndex])
     }
 }
 
@@ -164,9 +164,9 @@ private extension UIView {
 
 extension UIBezierPath {
     convenience init(roundedRect rect: CGRect, topLeftRadius r1: CGFloat, topRightRadius r2: CGFloat, bottomRightRadius r3: CGFloat, bottomLeftRadius r4: CGFloat) {
-        let left  = CGFloat(M_PI)
-        let up    = CGFloat(1.5*M_PI)
-        let down  = CGFloat(M_PI_2)
+        let left  = CGFloat(Double.pi)
+        let up    = CGFloat(1.5*Double.pi)
+        let down  = CGFloat(Double.pi/2)
         let right = CGFloat(0.0)
         self.init()
         addArc(withCenter: CGPoint(x: rect.minX + r1, y: rect.minY + r1), radius: r1, startAngle: left,  endAngle: up,    clockwise: true)
@@ -178,7 +178,7 @@ extension UIBezierPath {
 }
 
 extension UITableView {
-    func dequeueReusableCell<T: UITableViewCell>(indexPath: IndexPath) -> T where T: Reusable {
+    func dequeueReusableCell<T: UITableViewCell>(indexPath: IndexPath) -> T  {
         return self.dequeueReusableCell(withIdentifier: T.reuseIdentifier, for: indexPath) as! T
     }
     func performUpdate(_ update: ()->Void, completion: (()->Void)?) {
@@ -217,7 +217,7 @@ extension Array where Element:Hashable {
         //search trough an array. In other words, array.contans(item:) is O(n) complexity
         var seen: [Element: Bool] = [:]
         
-        return self.flatMap { element in
+        return self.compactMap { element in
             guard seen[element] == nil else {
                 return nil
             }
@@ -249,7 +249,7 @@ extension String {
             var nonEntityString: NSString? = nil
             
             if scanner.scanUpTo("&", into: &nonEntityString) {
-                if let s = nonEntityString as? String {
+                if let s = nonEntityString as String? {
                     result.append(s)
                 }
             }
@@ -313,7 +313,7 @@ extension UIView
     func addCornerRadiusAnimation(from: CGFloat, to: CGFloat, duration: CFTimeInterval)
     {
         let animation = CABasicAnimation(keyPath:"cornerRadius")
-        animation.timingFunction = CAMediaTimingFunction(name: kCAMediaTimingFunctionLinear)
+        animation.timingFunction = CAMediaTimingFunction(name: CAMediaTimingFunctionName.linear)
         animation.fromValue = from
         animation.toValue = to
         animation.duration = duration
@@ -384,7 +384,7 @@ extension UIView {
         let maskLayer = CAShapeLayer()
         if inverse {
             path.append(UIBezierPath(rect: self.bounds))
-            maskLayer.fillRule = kCAFillRuleEvenOdd
+            maskLayer.fillRule = CAShapeLayerFillRule.evenOdd
         }
         maskLayer.path = path.cgPath
         self.layer.mask = maskLayer
@@ -395,7 +395,7 @@ extension UIView {
         let maskLayer = CAShapeLayer()
         if inverse {
             path.append(UIBezierPath(rect: self.bounds))
-            maskLayer.fillRule = kCAFillRuleEvenOdd
+            maskLayer.fillRule = CAShapeLayerFillRule.evenOdd
         }
         maskLayer.path = path.cgPath
         self.layer.mask = maskLayer

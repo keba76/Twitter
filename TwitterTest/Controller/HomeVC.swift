@@ -132,7 +132,7 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
                 x.cellData.asObservable().subscribe(onNext: { [weak self] data in
                     guard let s = self else { return }
                     s.varietyCellAction(data: data)
-                }).addDisposableTo(self.dis)
+                }).disposed(by: self.dis)
             }
         }
         self.tableView.reloadData()
@@ -218,7 +218,7 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
         NSLayoutConstraint.activate([leading, trailing, top])
         myView!.translatesAutoresizingMaskIntoConstraints = false
         
-        self.view.bringSubview(toFront: myView!)
+        self.view.bringSubviewToFront(myView!)
         
         newTweetsLbl = UILabel()
         newTweetsLbl?.text = ""
@@ -234,9 +234,9 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
         imageView.image = UIImage(named: "arrowSimple")
         
         let stackView = UIStackView()
-        stackView.axis = UILayoutConstraintAxis.horizontal
-        stackView.distribution = UIStackViewDistribution.equalSpacing
-        stackView.alignment = UIStackViewAlignment.center
+        stackView.axis = NSLayoutConstraint.Axis.horizontal
+        stackView.distribution = UIStackView.Distribution.equalSpacing
+        stackView.alignment = UIStackView.Alignment.center
         stackView.spacing = 9.0
         
         stackView.addArrangedSubview(imageView)
@@ -249,23 +249,23 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
         stackView.bottomAnchor.constraint(equalTo: myView!.bottomAnchor, constant: -4.0).isActive = true
     }
     
-    func barbuttonReply() {
+    @objc func barbuttonReply() {
         let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main).instantiateViewController(withIdentifier: "ReplyAndNewTweet") as! UINavigationController
         if let controller = storyboard.viewControllers.first as? ReplyAndNewTweetVC {
             controller.userReply = nil
             self.present(storyboard, animated: true, completion: nil)
         }
     }
-    func barbuttonInfo() {
+    @objc func barbuttonInfo() {
         
     }
     
-    func actionClose () {
+    @objc func actionClose () {
         self.lastTweetID = nil
-        self.perform(#selector(reloadData), with: nil, afterDelay: 1, inModes: [.commonModes])
+        self.perform(#selector(reloadData), with: nil, afterDelay: 1, inModes: [RunLoop.Mode.common])
     }
     
-    func reloadData(append: Bool = false) {
+    @objc func reloadData(append: Bool = false) {
         
         instance?.timeLine(maxID: lastTweetID) { (data) in
             if append {
@@ -284,7 +284,7 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
                     x.cellData.asObservable().subscribe(onNext: { [weak self] data in
                         guard let s = self else { return }
                         s.varietyCellAction(data: data)
-                    }).addDisposableTo(self.dis)
+                    }).disposed(by: self.dis)
                 }
                 self.tweet?.append(contentsOf: data)
                 if self.isMoreDataLoading.finish {
@@ -320,7 +320,7 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
                         x.cellData.asObservable().subscribe(onNext: { [weak self] data in
                             guard let s = self else { return }
                             s.varietyCellAction(data: data)
-                        }).addDisposableTo(self.dis)
+                        }).disposed(by: self.dis)
                     }
                     self.lastTweetID = self.tweet?.last?.lastTweetID
                     self.indexRefresh = self.tempTweetArray!.count
@@ -443,11 +443,11 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
                         controller.tweet = twee
                         controller.indexPath = index
                     })
-                    SDWebImageManager.shared().downloadImage(with: twee.userAvatar, progress: { (_, _) in }, completed: { (image, error, cache, _, _) in
+                    SDWebImageManager.shared().loadImage(with: twee.userAvatar, progress: { (_, _, _) in }, completed: { (image, error, cache, _, _, _) in
                         twee.userPicImage.onNext(image!)
                     })
                     if let url = twee.mediaImageURLs.first {
-                        SDWebImageManager.shared().downloadImage(with: url, progress: { (_, _) in }, completed: { (image, error, cache, _, _) in
+                        SDWebImageManager.shared().loadImage(with: url, progress: { (_, _, _) in }, completed: { (image, error, cache, _, _, _) in
                             twee.image.onNext(image!)
                         })
                     }
@@ -499,13 +499,13 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
                 controller.tweet = tweet
                 controller.quoteTap = true
             })
-            SDWebImageManager.shared().downloadImage(with: tweet.userAvatar, progress: { (_, _) in }, completed: { (image, error, cache, _, _) in
+            SDWebImageManager.shared().loadImage(with: tweet.userAvatar, progress: { (_, _, _) in }, completed: { (image, error, cache, _, _, _) in
                 if image == nil {
                     let urlString = tweet.userAvatar.absoluteString
                     if urlString.contains("profile_images") {
                         let newUrl = urlString.replace(target: ".jpg", withString: "_bigger.jpg")
-                        SDWebImageManager.shared().downloadImage(with: URL(string: newUrl), progress: { (_ , _) in
-                        }) { (image, error, cache , _ , _) in
+                        SDWebImageManager.shared().loadImage(with: URL(string: newUrl), progress: { (_ , _, _) in
+                        }) { (image, error, cache , _ , _, _) in
                             tweet.userPicImage.onNext(image!)
                         }
                     }
@@ -514,7 +514,7 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
                 }
             })
             if let url = tweet.mediaImageURLs.first {
-                SDWebImageManager.shared().downloadImage(with: url, progress: { (_, _) in }, completed: { (image, error, cache, _, _) in
+                SDWebImageManager.shared().loadImage(with: url, progress: { (_, _, _) in }, completed: { (image, error, cache, _, _, _) in
                     tweet.image.onNext(image!)
                 })
             }
@@ -752,7 +752,7 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
                 let initialSizeTextLbl = cell.tweetContentText.frame.size
                 let rect = tweetHeight.text.boundingRect(with:  CGSize(width: initialSizeTextLbl.width, height: CGFloat.greatestFiniteMagnitude), options: .usesLineFragmentOrigin, context: nil)
                 let viewContent = cell.contentView
-                let size = viewContent.systemLayoutSizeFitting(UILayoutFittingCompressedSize)
+                let size = viewContent.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
                 let finaleSize: CGFloat
                 if tweetHeight.retweetedType.isEmpty {
                     finaleSize = size.height + ceil(rect.size.height) - 12.0 + 1.0
@@ -779,7 +779,7 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
                     sizeQuoteTextLbl = ceil(rectQuote.size.height) + 1.0
                 }
                 let viewContent = cell.contentView
-                let size = viewContent.systemLayoutSizeFitting(UILayoutFittingCompressedSize)
+                let size = viewContent.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
                 let finaleSize: CGFloat
                 if tweetHeight.retweetedType.isEmpty {
                     finaleSize = size.height + ceil(rect.size.height) - 12.0 + 1.0 + sizeQuoteTextLbl
@@ -798,7 +798,7 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
                 let initialSizeTextLbl = cell.tweetContentText.frame.size
                 let rect = tweetHeight.text.boundingRect(with:  CGSize(width: initialSizeTextLbl.width, height: CGFloat.greatestFiniteMagnitude), options: .usesLineFragmentOrigin, context: nil)
                 let viewContent = cell.contentView
-                let size = viewContent.systemLayoutSizeFitting(UILayoutFittingCompressedSize)
+                let size = viewContent.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
                 let finaleSize: CGFloat
                 if tweetHeight.retweetedType.isEmpty {
                     finaleSize = size.height + ceil(rect.size.height) - 12.0 + 1.0
@@ -866,11 +866,11 @@ final class HomeVC: UIViewController, UITableViewDataSource, UITableViewDelegate
         let text = tweet.text
         let attribute = NSMutableAttributedString(attributedString: text)
         attribute.beginEditing()
-        attribute.enumerateAttribute(NSFontAttributeName, in: NSRange(location: 0, length: text.length), using: { (value, range, stop) in
+        attribute.enumerateAttribute(NSAttributedString.Key(rawValue: convertFromNSAttributedStringKey(NSAttributedString.Key.font)), in: NSRange(location: 0, length: text.length), using: { (value, range, stop) in
             if let oldFont = value as? UIFont {
                 let newFont = oldFont.withSize(14.5)
-                attribute.removeAttribute(NSFontAttributeName, range: range)
-                attribute.addAttribute(NSFontAttributeName, value: newFont, range: range)
+                attribute.removeAttribute(NSAttributedString.Key.font, range: range)
+                attribute.addAttribute(NSAttributedString.Key.font, value: newFont, range: range)
             }
         })
         attribute.endEditing()
@@ -994,4 +994,9 @@ extension HomeVC: UITableViewDataSourcePrefetching {
             #endif
         }
     }
+}
+
+// Helper function inserted by Swift 4.2 migrator.
+fileprivate func convertFromNSAttributedStringKey(_ input: NSAttributedString.Key) -> String {
+	return input.rawValue
 }
